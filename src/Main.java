@@ -7,12 +7,14 @@ public class Main {
         Map m = new Map();
         Parser p = new Parser();
 
+        // Parser file
         try {
             p.ReadFile(m);
-            System.out.println("A = " + m.A);
         } catch (FileNotFoundException e) {
             System.out.println("File tidak ditemukan: " + e.getMessage());
         }
+
+        
     }
 }
 

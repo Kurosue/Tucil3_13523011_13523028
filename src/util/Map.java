@@ -2,16 +2,38 @@ package util;
 
 public class Map
 {
-	public int A;
-	public int B;
-	public int N;
-	public char[][] map;
+	private int A;
+	private int B;
+	private int N;
+	private char[][] map;
 
+	// Konstruktor
 	public Map()
 	{
 		this.A = 0;
 		this.B = 0;
 		this.N = 0;
+	}
+
+	// Getter
+	public int getA()
+	{
+		return this.A;
+	}
+
+	public int getB()
+	{
+		return this.B;
+	}
+
+	public int getN()
+	{
+		return this.N;
+	}
+
+	public char[][] getMap()
+	{
+		return this.map;
 	}
 
 	public void setMapAttr(int A, int B, int N)
