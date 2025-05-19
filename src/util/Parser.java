@@ -36,7 +36,7 @@ public class Parser {
         int totalBits = width * height;
         int chunkCount = (totalBits + 63) / 64;
     
-        int _ = Integer.parseInt(lines.get(1).trim()); // Ga kepake
+        int n = Integer.parseInt(lines.get(1).trim()); // Ga kepake
     
         Map<Character, List<Integer>> carPositions = new HashMap<>();
         char[][] board = new char[height][width];
@@ -45,17 +45,25 @@ public class Parser {
         int kRow = -1;
         int kCol = -1;
         String exitDirection = "";
-    
-        for (int i = 0; i < height; i++) {
-            String row = lines.get(i + 2).trim();
+        
+        Boolean vk = false;
+        for (int i = 0; i < lines.size()-2; i++) {
+            String row = lines.get(i + 2);
+            Boolean k = false;
             for (int j = 0; j < row.length(); j++) {
                 char c = row.charAt(j);
+                if (c == ' ') continue;
                 
                 if (c == 'K') {
+                    if(i == 0)
+                    {
+                        vk = true;
+                    } else {
+                        k = true;
+                    }
                     kRow = i;
                     kCol = j;
                     
-                    // Determine exit direction
                     if (j == 0) exitDirection = "left";
                     else if (j == width) exitDirection = "right";
                     else if (i == 0) exitDirection = "top";
@@ -64,12 +72,28 @@ public class Parser {
                     continue;
                 }
                 else{
-                    board[i][j] = c;
+                    if(k)
+                    {
+                        board[i][j-1] = c;
+                    } else if(vk)
+                    {
+                        board[i-1][j] = c;
+                    } else
+                    {
+                        board[i][j] = c;
+                    }
                 }
-                
                 if (c == '.' || c == 'K') continue;
-    
-                int idx = i * width + j;
+                int idx = 0;
+                if(k)
+                {
+                    idx = i * width + (j - 1);
+                } else if(vk)
+                {
+                    idx = (i - 1) * width + j;
+                } else{
+                    idx = i * width + j;
+                }
                 carPositions.putIfAbsent(c, new ArrayList<>());
                 carPositions.get(c).add(idx);
             }
@@ -109,6 +133,7 @@ public class Parser {
         }
     
         State initial = new State(cars, null, "", 0);
+        System.out.println(exitDirection);
         return new ParsedResult(initial, width, height, kRow, kCol, exitDirection);
     }
 }
