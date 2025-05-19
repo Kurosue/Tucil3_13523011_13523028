@@ -2,8 +2,10 @@ import util.Parser;
 import util.State;
 import pathfinding.UCS;
 import pathfinding.AStar;
+import pathfinding.GreedyBFS;
 import util.Car;
 import util.BoardPrinter;
+import heuristic.*;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Scanner;
@@ -20,66 +22,74 @@ public class MainCLI {
             Parser.ParsedResult parsed = Parser.parseFile(inputFile);
             State root = parsed.initialState;
             
-            // Create goalMask based on board dimensions
-            // This assumes the goal is to move the primary piece to the right edge
-            int width = parsed.width;
-            int height = parsed.height;
-            int totalBits = width * height;
-            int chunkCount = (totalBits + 63) / 64;
-            
-            // Determine goal location (typically far right of middle row)
-            int goalRow = height / 2;
-            long[] goalMask = new long[chunkCount];
-            
-            // Set bits for goal position (typically 2 cells at the exit)
-            int goalPos1 = goalRow * width + (width - 2);
-            int goalPos2 = goalRow * width + (width - 1);
-            
-            goalMask[goalPos1 / 64] |= (1L << (goalPos1 % 64));
-            goalMask[goalPos2 / 64] |= (1L << (goalPos2 % 64));
-            
             // What algorithm to use?
             System.out.println("Choose the algorithm to use:");
             System.out.println("1. A*");
             System.out.println("2. UCS");
-            System.out.print("Enter your choice (1 or 2): ");
+            System.out.println("3. Greedy Best-First Search");
+            System.out.print("Enter your choice (1, 2, or 3): ");
             int choice = scanner.nextInt();
-            if (choice != 1 && choice != 2) {
+            if (choice < 1 || choice > 3) {
                 System.out.println("Invalid choice. Defaulting to UCS.");
                 choice = 2;
             }
+            
+            // If using A* or Greedy, ask for heuristic
+            Heuristic selectedHeuristic = null;
+            if (choice == 1 || choice == 3) {
+                System.out.println("\nChoose a heuristic:");
+                System.out.println("1. Distance to exit");
+                System.out.println("2. Number of blocking cars");
+                System.out.println("3. Combined (distance + blocking cars)");
+                System.out.print("Enter your choice (1, 2, or 3): ");
+                int heuristicChoice = scanner.nextInt();
+                
+                switch (heuristicChoice) {
+                    case 1:
+                        selectedHeuristic = new Distance();
+                        break;
+                    case 2:
+                        selectedHeuristic = new BlockingCars();
+                        break;
+                    case 3:
+                        selectedHeuristic = new CombinedHeuristic();
+                        break;
+                    default:
+                        System.out.println("Invalid choice. Using Distance heuristic.");
+                        selectedHeuristic = new Distance();
+                }
+            }
 
+            State goalState = null;
+            
             if (choice == 1) {
                 // A* algorithm
-                System.out.println("Using A* algorithm...");
-                AStar solver = new AStar(goalMask, parsed.width, parsed.height, parsed.kRow, parsed.kCol, parsed.exitDirection);
-                State goalState = solver.find(root);
-                
-                if (goalState != null) {
-                    System.out.println("\nSolution Path:");
-                    for (String move : goalState.getMoveHistory()) {
-                        System.out.println(move);
-                    }
-                    System.out.println("\nFinal Board State:");
-                    BoardPrinter.printBoard(goalState, parsed.width, parsed.height, goalPos1, goalPos2);
-                }
-            } else {
+                System.out.println("\nUsing A* algorithm...");
+                AStar solver = new AStar(parsed.width, parsed.height, parsed.kRow, parsed.kCol, parsed.exitDirection, selectedHeuristic);
+                goalState = solver.find(root);
+            } else if (choice == 2) {
                 // UCS algorithm
-                System.out.println("Using UCS algorithm...");
+                System.out.println("\nUsing UCS algorithm...");
                 UCS solver = new UCS(parsed.width, parsed.height, parsed.kRow, parsed.kCol, parsed.exitDirection);
-                State goalState = solver.find(root);
-                if (goalState != null) {
-                    System.out.println("\nSolution Path:");
-                    for (String move : goalState.getMoveHistory()) {
-                        System.out.println(move);
-                    }
-                    System.out.println("\nFinal Board State:");
-                    BoardPrinter.printBoard(goalState, parsed.width, parsed.height, goalPos1, goalPos2);
+                goalState = solver.find(root);
+            } else {
+                // Greedy Best-First Search algorithm
+                System.out.println("\nUsing Greedy Best-First Search algorithm...");
+                GreedyBFS solver = new GreedyBFS(parsed.width, parsed.height, parsed.kRow, parsed.kCol, parsed.exitDirection, selectedHeuristic);
+                goalState = solver.find(root);
+            }
+            
+            if (goalState != null) {
+                System.out.println("\nSolution Path:");
+                for (String move : goalState.getMoveHistory()) {
+                    System.out.println(move);
                 }
-            }            
+                System.out.println("\nFinal Board State:");
+                BoardPrinter.printBoard(goalState, parsed.width, parsed.height);
+            }
 
             long endTime = System.currentTimeMillis();
-            System.out.printf("\nExecution time: %.3f milliseconds\n", (endTime - startTime) / 1000.0);
+            System.out.printf("\nExecution time: %.3f seconds\n", (endTime - startTime) / 1000.0);
 
         } catch (Exception e) {
             System.out.println("Error while processing: " + e.getMessage());
