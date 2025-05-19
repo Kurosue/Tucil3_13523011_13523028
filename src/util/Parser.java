@@ -44,6 +44,7 @@ public class Parser {
         // Find K position
         int kRow = -1;
         int kCol = -1;
+        int kcount = 0;
         String exitDirection = "";
         
         Boolean vk = false;
@@ -63,6 +64,13 @@ public class Parser {
                     }
                     kRow = i;
                     kCol = j;
+                    kcount++;
+                    if (kcount > 1) {
+                        throw new IllegalArgumentException("Hanya ada satu K yang diperbolehkan");
+                    }
+                    if(kRow < 0 || kRow >= height || kCol < 0 || kCol >= width) {
+                        throw new IllegalArgumentException("Lokasi K invalid wak :(");
+                    }
                     
                     if (j == 0) exitDirection = "left";
                     else if (j == width) exitDirection = "right";
@@ -99,6 +107,39 @@ public class Parser {
             }
         }
     
+        // Validate car positions
+        for (Map.Entry<Character, List<Integer>> entry : carPositions.entrySet()) {
+            char id = entry.getKey();
+            List<Integer> positions = entry.getValue();
+            
+            if (positions.size() > 1) {
+                // Check if horizontal (all positions in the same row)
+                boolean sameRow = true;
+                int firstRow = positions.get(0) / width;
+                for (int i = 1; i < positions.size(); i++) {
+                    if (positions.get(i) / width != firstRow) {
+                        sameRow = false;
+                        break;
+                    }
+                }
+                
+                // Check if vertical (all positions in the same column)
+                boolean sameCol = true;
+                int firstCol = positions.get(0) % width;
+                for (int i = 1; i < positions.size(); i++) {
+                    if (positions.get(i) % width != firstCol) {
+                        sameCol = false;
+                        break;
+                    }
+                }
+                
+                // Car must be either horizontal or vertical
+                if (!sameRow && !sameCol) {
+                    throw new IllegalArgumentException("Car " + id + " is neither horizontal nor vertical.");
+                }
+            }
+        }
+
         // Rest of parsing code remains the same
         Map<Character, Car> cars = new HashMap<>();
         for (Map.Entry<Character, List<Integer>> entry : carPositions.entrySet()) {
