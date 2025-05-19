@@ -6,7 +6,7 @@ import heuristic.Heuristic;
 
 public class GreedyBFS {
     private PriorityQueue<State> queue;
-    private Set<State> visited;
+    private Map<String, Integer> visitedMap; // Maps state hash to heuristic value
     private int width, height;
     private int kRow, kCol;
     private String exitDirection;
@@ -26,7 +26,7 @@ public class GreedyBFS {
             int h2 = calculateHeuristic(s2);
             return Integer.compare(h1, h2);
         });
-        this.visited = new HashSet<>();
+        this.visitedMap = new HashMap<>();
     }
     
     // Use the provided heuristic
@@ -36,7 +36,7 @@ public class GreedyBFS {
     
     public State find(State initialState) {
         queue.add(initialState);
-        visited.add(initialState);
+        visitedMap.put(getStateHash(initialState), calculateHeuristic(initialState));
         int visitedNode = 0;
         
         System.out.println("Using Greedy Best-First Search with heuristic: " + heuristic.getName());
@@ -59,8 +59,9 @@ public class GreedyBFS {
             
             List<State> successors = currentState.generateNextStates(width, height);
             for (State successor : successors) {
-                if (!visited.contains(successor)) {
-                    visited.add(successor);
+                String successorHash = getStateHash(successor);
+                if (!visitedMap.containsKey(successorHash)) {
+                    visitedMap.put(successorHash, calculateHeuristic(successor));
                     queue.add(successor);
                 }
             }
@@ -68,5 +69,31 @@ public class GreedyBFS {
         
         System.out.println("Goal state not reachable after exploring " + visitedNode + " nodes.");
         return null;
+    }
+    
+    /**
+     * Generate a hash string for a state based on car positions
+     * This is used as a key for the visitedMap
+     */
+    private String getStateHash(State state) {
+        // A more efficient and reliable way of hashing the state 
+        // than relying on the default hashCode
+        StringBuilder sb = new StringBuilder();
+        
+        // Sort car IDs for consistent ordering
+        List<Character> carIds = new ArrayList<>(state.cars.keySet());
+        Collections.sort(carIds);
+        
+        for (char carId : carIds) {
+            sb.append(carId).append(":");
+            
+            // Append bitmask representation for each car
+            for (long mask : state.cars.get(carId).bitmask) {
+                sb.append(mask).append(",");
+            }
+            sb.append(";");
+        }
+        
+        return sb.toString();
     }
 }

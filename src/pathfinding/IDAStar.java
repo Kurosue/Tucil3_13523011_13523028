@@ -29,7 +29,8 @@ public class IDAStar {
         while (threshold < Integer.MAX_VALUE) {
             System.out.println("Current threshold: " + threshold);
             int nextThreshold = Integer.MAX_VALUE;
-            SearchResult result = search(initialState, 0, threshold, new HashSet<>(), nextThreshold);
+            Set<String> visitedStates = new HashSet<>(); // Using string hashes
+            SearchResult result = search(initialState, 0, threshold, visitedStates, nextThreshold);
             
             if (result.state != null) {
                 System.out.println("Goal state reached!");
@@ -48,7 +49,7 @@ public class IDAStar {
         return null;
     }
     
-    private SearchResult search(State state, int g, int threshold, Set<State> visited, int nextThreshold) {
+    private SearchResult search(State state, int g, int threshold, Set<String> visitedStates, int nextThreshold) {
         visitedNode++;
         
         int f = g + calculateHeuristic(state);
@@ -60,13 +61,15 @@ public class IDAStar {
             return new SearchResult(state, threshold);
         }
         
-        visited.add(state);
+        String stateHash = getStateHash(state);
+        visitedStates.add(stateHash);
         int min = Integer.MAX_VALUE;
         
         List<State> successors = state.generateNextStates(width, height);
         for (State successor : successors) {
-            if (!visited.contains(successor)) {
-                SearchResult result = search(successor, successor.cost, threshold, visited, nextThreshold);
+            String successorHash = getStateHash(successor);
+            if (!visitedStates.contains(successorHash)) {
+                SearchResult result = search(successor, successor.cost, threshold, visitedStates, nextThreshold);
                 if (result.state != null) {
                     return result;
                 }
@@ -74,12 +77,38 @@ public class IDAStar {
             }
         }
         
-        visited.remove(state);
+        visitedStates.remove(stateHash);
         return new SearchResult(null, min);
     }
     
     private int calculateHeuristic(State state) {
         return heuristic.calculate(state, width, height, exitDirection);
+    }
+    
+    /**
+     * Generate a hash string for a state based on car positions
+     * This is used as a key for tracking visited states
+     */
+    private String getStateHash(State state) {
+        // A more efficient and reliable way of hashing the state 
+        // than relying on the default hashCode
+        StringBuilder sb = new StringBuilder();
+        
+        // Sort car IDs for consistent ordering
+        List<Character> carIds = new ArrayList<>(state.cars.keySet());
+        Collections.sort(carIds);
+        
+        for (char carId : carIds) {
+            sb.append(carId).append(":");
+            
+            // Append bitmask representation for each car
+            for (long mask : state.cars.get(carId).bitmask) {
+                sb.append(mask).append(",");
+            }
+            sb.append(";");
+        }
+        
+        return sb.toString();
     }
     
     private class SearchResult {
