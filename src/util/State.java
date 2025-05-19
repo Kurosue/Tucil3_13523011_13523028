@@ -11,6 +11,7 @@ public class State {
     public Map<Character, Car> cars;
     public State parent;
     public String move;
+    public long[] occupied;
     public int cost;
 
     public State(Map<Character, Car> cars, State parent, String move, int cost) {
@@ -18,6 +19,20 @@ public class State {
         this.parent = parent;
         this.move = move;
         this.cost = cost;
+        
+        int totalBits = 64;
+        for (Car car : cars.values()) {
+            totalBits = Math.max(totalBits, car.bitmask.length * 64);
+        }
+        
+        int chunkCount = (totalBits + 63) / 64;
+        this.occupied = new long[chunkCount];
+        
+        for (Car car : cars.values()) {
+            for (int i = 0; i < car.bitmask.length && i < chunkCount; i++) {
+                this.occupied[i] |= car.bitmask[i];
+            }
+        }
     }
 
     public State copy(State newParent, String newMove) {
@@ -34,7 +49,7 @@ public class State {
         long[] occupied = new long[chunkCount];
 
         for (Car car : cars.values()) {
-            for (int i = 0; i < chunkCount; i++) {
+            for (int i = 0; i < chunkCount && i < car.bitmask.length; i++) {
                 occupied[i] |= car.bitmask[i];
             }
         }
@@ -42,50 +57,111 @@ public class State {
         return occupied;
     }
 
-    public boolean isGoalReached(int width, int height) {
-        Car p = this.cars.get('P');
+    public boolean isReached(int width, int height) {
+        Car primaryCar = this.cars.get('P');
+        if (primaryCar == null) return false;
 
-        // Cek setiap posisi bit mobil P
-        for (int chunk = 0; chunk < p.bitmask.length; chunk++) {
-            long bits = p.bitmask[chunk];
-            for (int bit = 0; bit < 64; bit++) {
-                if ((bits & (1L << bit)) != 0) {
-                    int index = chunk * 64 + bit;
-                    int row = index / width;
-                    int col = index % width;
-
-                    // Cek jika mobil horizontal: col == width - 1
-                    if (p.isHorizontal && (col == 0 || col == width - 1)) return true;
-
-                    // Cek jika mobil vertikal: row == height - 1
-                    if (!p.isHorizontal && (row == 0 || row == height - 1)) return true;
+        if (primaryCar.isHorizontal) {
+            int row = primaryCar.row;
+            
+            long[] rowMask = new long[occupied.length];
+            for (int c = 0; c < width; c++) {
+                int idx = row * width + c;
+                int chunk = idx / 64;
+                int bit = idx % 64;
+                
+                if (chunk < rowMask.length) {
+                    rowMask[chunk] |= (1L << bit);
                 }
             }
+            
+            for (int i = 0; i < occupied.length; i++) {
+                long occupiedInRow = occupied[i] & rowMask[i];
+                long primaryCarBits = primaryCar.bitmask[i] & rowMask[i];
+                
+                if ((occupiedInRow & ~primaryCarBits) != 0) {
+                    return false;
+                }
+            }
+            
+            return true;
+        } 
+        else {
+            int col = primaryCar.col;
+            
+            long[] colMask = new long[occupied.length];
+            for (int r = 0; r < height; r++) {
+                int idx = r * width + col;
+                int chunk = idx / 64;
+                int bit = idx % 64;
+                
+                if (chunk < colMask.length) {
+                    colMask[chunk] |= (1L << bit);
+                }
+            }
+            
+            for (int i = 0; i < occupied.length; i++) {
+                long occupiedInCol = occupied[i] & colMask[i];
+                long primaryCarBits = primaryCar.bitmask[i] & colMask[i];
+                
+                if ((occupiedInCol & ~primaryCarBits) != 0) {
+                    return false;
+                }
+            }
+            
+            return true;
         }
-
-        return false;
     }
-
 
     public List<State> generateNextStates(int width, int height) {
         List<State> nextStates = new ArrayList<>();
-        long[] occupied = buildOccupiedMask(cars, width, height);
-
+        
         for (Map.Entry<Character, Car> entry : cars.entrySet()) {
+            char carId = entry.getKey();
             Car car = entry.getValue();
+            
             for (Direction dir : car.getPossibleDirections()) {
-                Car moved = car.shift(dir, width, height);
-                while (moved != null && !collides(moved, occupied, car.id)) {
-                    String moveStr = car.id + "-" + dir.name().toLowerCase();
-                    State next = this.copy(this, moveStr);
-                    next.cars.put(car.id, moved);
-                    nextStates.add(next);
-
-                    moved = moved.shift(dir, width, height);
+                String moveDesc = carId + "-" + dir.name().toLowerCase();
+                
+                Car movedCar = car.shift(dir, width, height);
+                
+                while (movedCar != null) {
+                    boolean collision = false;
+                    
+                    Map<Character, Car> tempCars = new HashMap<>(cars);
+                    tempCars.put(carId, movedCar);
+                    long[] tempOccupied = buildOccupiedMask(tempCars, width, height);
+                    
+                    int totalBits = 0;
+                    for (Car c : tempCars.values()) {
+                        for (int i = 0; i < c.bitmask.length; i++) {
+                            totalBits += Long.bitCount(c.bitmask[i]);
+                        }
+                    }
+                    
+                    int occupiedBits = 0;
+                    for (int i = 0; i < tempOccupied.length; i++) {
+                        occupiedBits += Long.bitCount(tempOccupied[i]);
+                    }
+                    
+                    if (totalBits != occupiedBits) {
+                        collision = true;
+                    }
+                    
+                    if (!collision) {
+                        State nextState = this.copy(this, moveDesc);
+                        nextState.cars.put(carId, movedCar);
+                        nextState.occupied = tempOccupied;
+                        nextStates.add(nextState);
+                        
+                        movedCar = movedCar.shift(dir, width, height);
+                    } else {
+                        break;
+                    }
                 }
             }
         }
-
+        
         return nextStates;
     }
 
@@ -107,7 +183,6 @@ public class State {
         return false;
     }
 
-    // For visited checking
     @Override
     public int hashCode() {
         return cars.hashCode();
@@ -119,7 +194,6 @@ public class State {
         return this.cars.equals(other.cars);
     }
 
-    // Helper to reconstruct move history( Debug doang tapi kalau penting jangan hapus)
     public List<String> getMoveHistory() {
         List<String> moves = new ArrayList<>();
         State cur = this;

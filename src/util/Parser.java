@@ -11,13 +11,11 @@ public class Parser {
 
     public static class ParsedResult {
         public State initialState;
-        public long[] goalMask;
         public int width;
         public int height;
 
-        public ParsedResult(State state, long[] goalMask, int width, int height) {
+        public ParsedResult(State state, int width, int height) {
             this.initialState = state;
-            this.goalMask = goalMask;
             this.width = width;
             this.height = height;
         }
@@ -32,12 +30,10 @@ public class Parser {
         int totalBits = width * height;
         int chunkCount = (totalBits + 63) / 64;
 
-        int nPiece = Integer.parseInt(lines.get(1).trim());
+        int _ = Integer.parseInt(lines.get(1).trim()); // Ga kepake
 
         Map<Character, List<Integer>> carPositions = new HashMap<>();
         char[][] board = new char[height][width];
-
-        long[] goalMask = new long[chunkCount];
 
         for (int i = 0; i < height; i++) {
             String row = lines.get(i + 2).trim();
@@ -52,19 +48,6 @@ public class Parser {
             }
         }
 
-        // Process goal (K)
-        outer:
-        for (int i = 0; i < height; i++) {
-            for (int j = 0; j < width; j++) {
-                if (board[i][j] == 'K') {
-                    int idx = i * width + j;
-                    goalMask[idx / 64] |= (1L << (idx % 64));
-                    break outer;
-                }
-            }
-        }
-
-        // Build Car map
         Map<Character, Car> cars = new HashMap<>();
         for (Map.Entry<Character, List<Integer>> entry : carPositions.entrySet()) {
             char id = entry.getKey();
@@ -75,18 +58,29 @@ public class Parser {
             if (len > 1) {
                 int first = positions.get(0);
                 int second = positions.get(1);
-                horizontal = (first / width) == (second / width); // same row
+                horizontal = (first / width) == (second / width);
             }
 
             long[] bitmask = new long[chunkCount];
             for (int index : positions) {
                 bitmask[index / 64] |= (1L << (index % 64));
             }
+            
+            int row = -1;  // Default -1 untuk mobil horizontal
+            int col = -1;  // Default -1 untuk mobil vertikal
+            
+            if (horizontal) {
+                int firstPos = positions.get(0);
+                row = firstPos / width;
+            } else {
+                int firstPos = positions.get(0);
+                col = firstPos % width;
+            }
 
-            cars.put(id, new Car(id, horizontal, len, bitmask));
+            cars.put(id, new Car(id, horizontal, len, bitmask, col, row));
         }
 
         State initial = new State(cars, null, "", 0);
-        return new ParsedResult(initial, goalMask, width, height);
+        return new ParsedResult(initial, width, height);
     }
 }

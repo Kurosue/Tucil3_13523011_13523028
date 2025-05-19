@@ -1,16 +1,16 @@
 package pathfinding;
 
 import java.util.*;
+
+import util.BoardPrinter;
 import util.State;
 
 public class UCS {
-    private Queue<State> queue; // Uniform cost → queue biasa cukup
+    private Queue<State> queue; // 
     private Set<State> visited;
-    private long[] goalMask;
     private int width, height;
 
-    public UCS(long[] goalMask, int width, int height) {
-        this.goalMask = goalMask;
+    public UCS(int width, int height) {
         this.width = width;
         this.height = height;
         this.queue = new LinkedList<>();
@@ -25,18 +25,19 @@ public class UCS {
         while (!queue.isEmpty()) {
             State currentState = queue.poll();
             visitedNode++;
-
-            if (currentState.isGoalReached(width, height)) {
+            
+            if (currentState.isReached(width, height)) {
                 System.out.println("Goal state reached!");
                 System.out.println("Visited nodes: " + visitedNode);
                 System.out.println("Total cost (steps): " + currentState.cost);
                 return currentState;
             }
-
+            
             List<State> successors = currentState.generateNextStates(width, height);
             for (State successor : successors) {
                 if (!visited.contains(successor)) {
                     visited.add(successor);
+                    BoardPrinter.printBoard(successor, width, height);
                     queue.add(successor);
                 }
             }
