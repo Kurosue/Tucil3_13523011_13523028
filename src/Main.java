@@ -18,8 +18,8 @@ public class Main {
                 String input = inputScanner.nextLine();
                 if (input.equalsIgnoreCase("cli")) {
                     System.out.println("Starting Rush Hour Solver in CLI mode...");
-                    inputScanner.close();
                     MainCLI.main(new String[0]);
+                    inputScanner.close();
                     break;
                 } else if (input.equalsIgnoreCase("gui")) {
                     System.out.println("Starting Rush Hour Solver in GUI mode...");

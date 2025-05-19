@@ -1,0 +1,333 @@
+import javafx.application.Application;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
+import javafx.stage.Stage;
+import javafx.stage.FileChooser;
+import javafx.scene.Scene;
+import javafx.scene.layout.*;
+import javafx.scene.control.*;
+import javafx.geometry.*;
+import javafx.scene.paint.Color;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.collections.FXCollections;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
+import java.io.File;
+import java.util.*;
+import javafx.scene.text.Font;
+
+public class Main extends Application {
+    private GridPane boardPane;
+    private int boardWidth = 6;
+    private int boardHeight = 6;
+    private int numPieces = 5;
+    private char currentColor = 'A';
+    private Button[][] boardButtons;
+    private Map<Character, Color> colorMap = new HashMap<>();
+    
+    @Override
+    public void start(Stage primaryStage) {
+        primaryStage.setTitle("Rush Hour Puzzle Solver");
+
+        // Initialize layout components
+        boardPane = new GridPane();
+        boardPane.setHgap(2);
+        boardPane.setVgap(2);
+        boardPane.setAlignment(Pos.CENTER);
+
+        Label lblIterations = new Label("Iterations: ");
+        Label lblTime = new Label("Time Elapsed: ");
+
+        VBox root = new VBox(10);
+        root.setPadding(new Insets(10));
+        root.setAlignment(Pos.CENTER);
+
+        // Add logo if you have one
+        try {
+            Image logo = new Image("file:logo.png");
+            ImageView logoView = new ImageView(logo);
+            logoView.setFitWidth(320);
+            logoView.setPreserveRatio(true);
+            VBox.setMargin(logoView, new Insets(0, 0, 20, 0));
+            root.getChildren().add(logoView);
+        } catch (Exception e) {
+            System.out.println("Logo not found. Continuing without logo.");
+        }
+
+        // Board size configuration
+        HBox sizeConfig = new HBox(10);
+        sizeConfig.setAlignment(Pos.CENTER);
+        Label lblWidth = new Label("Board Width:");
+        Spinner<Integer> widthSpinner = new Spinner<>(3, 10, boardWidth);
+        widthSpinner.setEditable(true);
+        Label lblHeight = new Label("Board Height:");
+        Spinner<Integer> heightSpinner = new Spinner<>(3, 10, boardHeight);
+        heightSpinner.setEditable(true);
+        sizeConfig.getChildren().addAll(lblWidth, widthSpinner, lblHeight, heightSpinner);
+
+        // Number of pieces configuration
+        HBox piecesConfig = new HBox(10);
+        piecesConfig.setAlignment(Pos.CENTER);
+        Label lblPieces = new Label("Number of Non-Primary Pieces:");
+        Spinner<Integer> piecesSpinner = new Spinner<>(1, 25, numPieces);
+        piecesSpinner.setEditable(true);
+        piecesConfig.getChildren().addAll(lblPieces, piecesSpinner);
+
+        // Color selection
+        HBox colorSelection = new HBox(10);
+        colorSelection.setAlignment(Pos.CENTER);
+        Label lblColor = new Label("Select Color:");
+        ComboBox<String> colorComboBox = new ComboBox<>();
+        colorComboBox.setItems(FXCollections.observableArrayList("Primary (Red)"));
+        colorSelection.getChildren().addAll(lblColor, colorComboBox);
+
+        // Initialize color map
+        initializeColorMap();
+        
+        // Apply button to set up the board
+        Button btnApplyConfig = new Button("Apply Configuration");
+        btnApplyConfig.setOnAction(e -> {
+            boardWidth = widthSpinner.getValue();
+            boardHeight = heightSpinner.getValue();
+            numPieces = piecesSpinner.getValue();
+            
+            // Rebuild color dropdown
+            colorComboBox.getItems().clear();
+            colorComboBox.getItems().add("Primary (Red)");
+            for (int i = 0; i < numPieces; i++) {
+                char colorChar = (char)('A' + i);
+                colorComboBox.getItems().add("Piece " + colorChar);
+            }
+            colorComboBox.getSelectionModel().selectFirst();
+            
+            // Initialize the board
+            initializeBoard();
+        });
+
+        // Color selection handler
+        colorComboBox.setOnAction(e -> {
+            String selected = colorComboBox.getValue();
+            if (selected.equals("Primary (Red)")) {
+                currentColor = 'X'; // Primary piece character
+            } else {
+                // Extract the character from "Piece X"
+                currentColor = selected.charAt(selected.length() - 1);
+            }
+        });
+
+        // Solve button
+        Button btnSolve = new Button("Solve Puzzle");
+        btnSolve.setOnAction(e -> {
+            // Extract board configuration
+            char[][] boardConfig = getBoardConfiguration();
+            
+            // Call the solver (this would need to be implemented based on your solution class)
+            solvePuzzle(boardConfig);
+            
+            lblIterations.setText("Iterations: 123"); // Replace with actual values
+            lblTime.setText("Time Elapsed: 45 ms"); // Replace with actual values
+        });
+
+        Button btnSaveResultToText = new Button("Save Result to Text");
+        btnSaveResultToText.setDisable(true);
+        Button btnSaveResultToImage = new Button("Save Result to Image");
+        btnSaveResultToImage.setDisable(true);
+        
+        btnSaveResultToText.setOnAction(e -> {
+            // Save results implementation
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("Saved");
+            alert.setContentText("Solution text saved in test folder.");
+            alert.showAndWait();
+        });
+
+        btnSaveResultToImage.setOnAction(e -> {
+            // Save image implementation
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("Saved");
+            alert.setContentText("Image saved in test folder.");
+            alert.showAndWait();
+        });
+
+        // Create legend panel to show colors
+        TilePane colorLegend = new TilePane();
+        colorLegend.setPrefColumns(5);
+        colorLegend.setHgap(5);
+        colorLegend.setVgap(5);
+        colorLegend.setAlignment(Pos.CENTER);
+        Label legendTitle = new Label("Color Legend:");
+
+        // Initialize the board
+        initializeBoard();
+        
+        // Add all components to the root
+        root.getChildren().addAll(
+            sizeConfig, 
+            piecesConfig, 
+            btnApplyConfig,
+            colorSelection,
+            boardPane,
+            legendTitle,
+            colorLegend,
+            btnSolve,
+            lblIterations, 
+            lblTime, 
+            btnSaveResultToText, 
+            btnSaveResultToImage
+        );
+        
+        Scene scene = new Scene(root, 650, 700);
+        primaryStage.setScene(scene);
+        primaryStage.show();
+        
+        // Initial board setup
+        updateColorLegend(colorLegend);
+    }
+    
+    private void initializeColorMap() {
+        // Setup fixed colors for pieces
+        Color[] fixedColors = {
+            Color.RED,         // Primary piece
+            Color.GREEN,
+            Color.BLUE,
+            Color.YELLOW,
+            Color.MAGENTA,
+            Color.CYAN,
+            Color.ORANGERED,
+            Color.LIGHTGREEN,
+            Color.LIGHTYELLOW,
+            Color.LIGHTBLUE,
+            Color.PURPLE,
+            Color.LIGHTCYAN
+        };
+        
+        // Primary piece
+        colorMap.put('X', Color.RED);
+        
+        // Regular pieces A-Z
+        for (int i = 0; i < 12 && i < 26; i++) {
+            char letter = (char) ('A' + i);
+            colorMap.put(letter, fixedColors[i % fixedColors.length]);
+        }
+        
+        // Generate additional colors if needed
+        for (int i = 12; i < 26; i++) {
+            char letter = (char) ('A' + i);
+            double hue = (i * 360.0) / 26;
+            Color generated = Color.hsb(hue, 0.8, 0.8);
+            colorMap.put(letter, generated);
+        }
+    }
+    
+    private void initializeBoard() {
+        boardPane.getChildren().clear();
+        boardButtons = new Button[boardHeight][boardWidth];
+        
+        for (int row = 0; row < boardHeight; row++) {
+            for (int col = 0; col < boardWidth; col++) {
+                Button btn = new Button(" ");
+                btn.setMinSize(40, 40);
+                btn.setMaxSize(40, 40);
+                btn.setStyle("-fx-background-color: white; -fx-border-color: black;");
+                
+                // Store row and col in final variables for the lambda
+                final int r = row;
+                final int c = col;
+                
+                btn.setOnAction(e -> {
+                    if (currentColor == 'X') {
+                        // Primary piece (red)
+                        btn.setText("X");
+                        btn.setStyle("-fx-background-color: #FF0000; -fx-border-color: black;");
+                    } else {
+                        // Regular piece
+                        btn.setText(String.valueOf(currentColor));
+                        Color pieceColor = colorMap.get(currentColor);
+                        String hex = String.format("#%02X%02X%02X",
+                            (int)(pieceColor.getRed()*255),
+                            (int)(pieceColor.getGreen()*255),
+                            (int)(pieceColor.getBlue()*255));
+                        btn.setStyle("-fx-background-color: " + hex + "; -fx-border-color: black;");
+                    }
+                });
+                
+                // Right click to clear cell
+                btn.setOnContextMenuRequested(e -> {
+                    btn.setText(" ");
+                    btn.setStyle("-fx-background-color: white; -fx-border-color: black;");
+                });
+                
+                boardPane.add(btn, col, row);
+                boardButtons[row][col] = btn;
+            }
+        }
+    }
+    
+    private char[][] getBoardConfiguration() {
+        char[][] config = new char[boardHeight][boardWidth];
+        
+        for (int row = 0; row < boardHeight; row++) {
+            for (int col = 0; col < boardWidth; col++) {
+                String text = boardButtons[row][col].getText().trim();
+                if (text.isEmpty()) {
+                    config[row][col] = '0'; // Empty cell
+                } else {
+                    config[row][col] = text.charAt(0);
+                }
+            }
+        }
+        
+        return config;
+    }
+    
+    private void updateColorLegend(TilePane legendPane) {
+        legendPane.getChildren().clear();
+        
+        // Primary piece
+        Label primaryLabel = new Label("X - Primary");
+        primaryLabel.setStyle(
+            "-fx-background-color: #FF0000; " +
+            "-fx-padding: 5px; " +
+            "-fx-border-color: black;"
+        );
+        legendPane.getChildren().add(primaryLabel);
+        
+        // Other pieces
+        for (int i = 0; i < numPieces; i++) {
+            char colorChar = (char)('A' + i);
+            Color pieceColor = colorMap.get(colorChar);
+            String hex = String.format("#%02X%02X%02X",
+                (int)(pieceColor.getRed()*255),
+                (int)(pieceColor.getGreen()*255),
+                (int)(pieceColor.getBlue()*255));
+            
+            Label label = new Label(colorChar + "");
+            label.setStyle(
+                "-fx-background-color: " + hex + "; " +
+                "-fx-padding: 5px; " +
+                "-fx-border-color: black;"
+            );
+            legendPane.getChildren().add(label);
+        }
+    }
+    
+    private void solvePuzzle(char[][] boardConfig) {
+        // This would call your actual solver code
+        // For now, just display the board configuration
+        System.out.println("Solving puzzle with configuration:");
+        for (int row = 0; row < boardHeight; row++) {
+            for (int col = 0; col < boardWidth; col++) {
+                System.out.print(boardConfig[row][col] + " ");
+            }
+            System.out.println();
+        }
+        
+        // You would then update the board with the solution
+        // and enable save buttons
+    }
+
+    public static void main(String[] args) {
+        launch(args);
+    }
+}

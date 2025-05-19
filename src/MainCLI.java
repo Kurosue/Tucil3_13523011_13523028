@@ -52,7 +52,7 @@ public class MainCLI {
             if (choice == 1) {
                 // A* algorithm
                 System.out.println("Using A* algorithm...");
-                AStar solver = new AStar(goalMask, parsed.width, parsed.height);
+                AStar solver = new AStar(goalMask, parsed.width, parsed.height, parsed.kRow, parsed.kCol, parsed.exitDirection);
                 State goalState = solver.find(root);
                 
                 if (goalState != null) {
@@ -66,7 +66,7 @@ public class MainCLI {
             } else {
                 // UCS algorithm
                 System.out.println("Using UCS algorithm...");
-                UCS solver = new UCS(parsed.width, parsed.height);
+                UCS solver = new UCS(parsed.width, parsed.height, parsed.kRow, parsed.kCol, parsed.exitDirection);
                 State goalState = solver.find(root);
                 if (goalState != null) {
                     System.out.println("\nSolution Path:");

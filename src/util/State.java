@@ -57,59 +57,101 @@ public class State {
         return occupied;
     }
 
-    public boolean isReached(int width, int height) {
+    public boolean isReached(int width, int height, int kRow, int kCol, String exitDirection) {
         Car primaryCar = this.cars.get('P');
         if (primaryCar == null) return false;
-
+        
+        // Check correct orientation for the specified exit direction
         if (primaryCar.isHorizontal) {
-            int row = primaryCar.row;
+            // Horizontal car can only exit left or right
+            if (!("right".equals(exitDirection) || "left".equals(exitDirection))) return false;
             
-            long[] rowMask = new long[occupied.length];
+            // Find P's leftmost and rightmost positions
+            int pLeftmostCol = -1;
+            int pRightmostCol = -1;
+            
             for (int c = 0; c < width; c++) {
-                int idx = row * width + c;
+                int idx = primaryCar.row * width + c;
                 int chunk = idx / 64;
                 int bit = idx % 64;
                 
-                if (chunk < rowMask.length) {
-                    rowMask[chunk] |= (1L << bit);
+                if (chunk < primaryCar.bitmask.length && (primaryCar.bitmask[chunk] & (1L << bit)) != 0) {
+                    if (pLeftmostCol == -1) pLeftmostCol = c;
+                    pRightmostCol = c;
                 }
             }
             
-            for (int i = 0; i < occupied.length; i++) {
-                long occupiedInRow = occupied[i] & rowMask[i];
-                long primaryCarBits = primaryCar.bitmask[i] & rowMask[i];
-                
-                if ((occupiedInRow & ~primaryCarBits) != 0) {
-                    return false;
+            // Check clear path to exit
+            if ("right".equals(exitDirection)) {
+                // Check if path to the right edge is clear
+                for (int c = pRightmostCol + 1; c < width; c++) {
+                    int idx = primaryCar.row * width + c;
+                    int chunk = idx / 64;
+                    int bit = idx % 64;
+                    
+                    if (chunk < occupied.length && (occupied[chunk] & (1L << bit)) != 0) {
+                        return false; // Blocked
+                    }
                 }
+                return true; // Clear path to right edge
+            } else { // left
+                // Check if path to the left edge is clear
+                for (int c = 0; c < pLeftmostCol; c++) {
+                    int idx = primaryCar.row * width + c;
+                    int chunk = idx / 64;
+                    int bit = idx % 64;
+                    
+                    if (chunk < occupied.length && (occupied[chunk] & (1L << bit)) != 0) {
+                        return false; // Blocked
+                    }
+                }
+                return true; // Clear path to left edge
             }
+        } else { // Vertical car
+            // Vertical car can only exit top or bottom
+            if (!("top".equals(exitDirection) || "bottom".equals(exitDirection))) return false;
             
-            return true;
-        } 
-        else {
-            int col = primaryCar.col;
+            // Find P's topmost and bottommost positions
+            int pTopmostRow = -1;
+            int pBottommostRow = -1;
             
-            long[] colMask = new long[occupied.length];
             for (int r = 0; r < height; r++) {
-                int idx = r * width + col;
+                int idx = r * width + primaryCar.col;
                 int chunk = idx / 64;
                 int bit = idx % 64;
                 
-                if (chunk < colMask.length) {
-                    colMask[chunk] |= (1L << bit);
+                if (chunk < primaryCar.bitmask.length && (primaryCar.bitmask[chunk] & (1L << bit)) != 0) {
+                    if (pTopmostRow == -1) pTopmostRow = r;
+                    pBottommostRow = r;
                 }
             }
             
-            for (int i = 0; i < occupied.length; i++) {
-                long occupiedInCol = occupied[i] & colMask[i];
-                long primaryCarBits = primaryCar.bitmask[i] & colMask[i];
-                
-                if ((occupiedInCol & ~primaryCarBits) != 0) {
-                    return false;
+            // Check clear path to exit
+            if ("bottom".equals(exitDirection)) {
+                // Check if path to the bottom edge is clear
+                for (int r = pBottommostRow + 1; r < height; r++) {
+                    int idx = r * width + primaryCar.col;
+                    int chunk = idx / 64;
+                    int bit = idx % 64;
+                    
+                    if (chunk < occupied.length && (occupied[chunk] & (1L << bit)) != 0) {
+                        return false; // Blocked
+                    }
                 }
+                return true; // Clear path to bottom edge
+            } else { // top
+                // Check if path to the top edge is clear
+                for (int r = 0; r < pTopmostRow; r++) {
+                    int idx = r * width + primaryCar.col;
+                    int chunk = idx / 64;
+                    int bit = idx % 64;
+                    
+                    if (chunk < occupied.length && (occupied[chunk] & (1L << bit)) != 0) {
+                        return false; // Blocked
+                    }
+                }
+                return true; // Clear path to top edge
             }
-            
-            return true;
         }
     }
 

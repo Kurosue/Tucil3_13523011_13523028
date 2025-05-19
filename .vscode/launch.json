@@ -1,0 +1,21 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Main",
+            "request": "launch",
+            "mainClass": "Main",
+            "projectName": "Tucil3_13523011_13523028_b66c0b94",
+            "preLaunchTask": "compile-java"
+        },
+        {
+            "type": "java",
+            "name": "Launch MainGUI",
+            "request": "launch",
+            "mainClass": "MainGUI",
+            "vmArgs": "--module-path \"C:\\javafx-sdk-23.0.2\\lib\" --add-modules javafx.controls,javafx.fxml",
+            "preLaunchTask": "compile-java"
+        }
+    ]
+}

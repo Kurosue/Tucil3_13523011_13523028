@@ -13,11 +13,17 @@ public class Parser {
         public State initialState;
         public int width;
         public int height;
+        public int kRow;
+        public int kCol;
+        public String exitDirection; // "right", "left", "top", "bottom"
 
-        public ParsedResult(State state, int width, int height) {
+        public ParsedResult(State state, int width, int height, int kRow, int kCol, String exitDirection) {
             this.initialState = state;
             this.width = width;
             this.height = height;
+            this.kRow = kRow;
+            this.kCol = kCol;
+            this.exitDirection = exitDirection;
         }
     }
 
@@ -26,41 +32,63 @@ public class Parser {
         String[] dims = lines.get(0).trim().split(" ");
         int height = Integer.parseInt(dims[0]);
         int width = Integer.parseInt(dims[1]);
-
+    
         int totalBits = width * height;
         int chunkCount = (totalBits + 63) / 64;
-
+    
         int _ = Integer.parseInt(lines.get(1).trim()); // Ga kepake
-
+    
         Map<Character, List<Integer>> carPositions = new HashMap<>();
         char[][] board = new char[height][width];
-
+        
+        // Find K position
+        int kRow = -1;
+        int kCol = -1;
+        String exitDirection = "";
+    
         for (int i = 0; i < height; i++) {
             String row = lines.get(i + 2).trim();
-            for (int j = 0; j < width; j++) {
+            for (int j = 0; j < row.length(); j++) {
                 char c = row.charAt(j);
-                board[i][j] = c;
+                
+                if (c == 'K') {
+                    kRow = i;
+                    kCol = j;
+                    
+                    // Determine exit direction
+                    if (j == 0) exitDirection = "left";
+                    else if (j == width) exitDirection = "right";
+                    else if (i == 0) exitDirection = "top";
+                    else exitDirection = "bottom";
+                    
+                    continue;
+                }
+                else{
+                    board[i][j] = c;
+                }
+                
                 if (c == '.' || c == 'K') continue;
-
+    
                 int idx = i * width + j;
                 carPositions.putIfAbsent(c, new ArrayList<>());
                 carPositions.get(c).add(idx);
             }
         }
-
+    
+        // Rest of parsing code remains the same
         Map<Character, Car> cars = new HashMap<>();
         for (Map.Entry<Character, List<Integer>> entry : carPositions.entrySet()) {
             char id = entry.getKey();
             List<Integer> positions = entry.getValue();
             int len = positions.size();
-
+    
             boolean horizontal = false;
             if (len > 1) {
                 int first = positions.get(0);
                 int second = positions.get(1);
                 horizontal = (first / width) == (second / width);
             }
-
+    
             long[] bitmask = new long[chunkCount];
             for (int index : positions) {
                 bitmask[index / 64] |= (1L << (index % 64));
@@ -76,11 +104,11 @@ public class Parser {
                 int firstPos = positions.get(0);
                 col = firstPos % width;
             }
-
+    
             cars.put(id, new Car(id, horizontal, len, bitmask, col, row));
         }
-
+    
         State initial = new State(cars, null, "", 0);
-        return new ParsedResult(initial, width, height);
+        return new ParsedResult(initial, width, height, kRow, kCol, exitDirection);
     }
 }
