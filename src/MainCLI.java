@@ -7,6 +7,9 @@ import heuristic.*;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Collections;
 
 public class MainCLI {
     public static void main(String[] args) {
@@ -93,9 +96,30 @@ public class MainCLI {
             
             if (goalState != null) {
                 System.out.println("\nSolution Path:");
-                for (String move : goalState.getMoveHistory()) {
-                    System.out.println(move);
+                
+                // Build a list of states in order from initial to goal
+                List<State> statePath = new ArrayList<>();
+                State currentState = goalState;
+                while (currentState != null) {
+                    statePath.add(currentState);
+                    currentState = currentState.parent;
                 }
+                Collections.reverse(statePath);
+                
+                // Print initial state
+                System.out.println("Initial state:");
+                BoardPrinter.printBoard(statePath.get(0), parsed.width, parsed.height);
+                System.out.println();
+                
+                // Print each move and resulting state
+                for (int i = 1; i < statePath.size(); i++) {
+                    State state = statePath.get(i);
+                    System.out.println("Move " + i + ": " + state.move);
+                    BoardPrinter.printBoard(state, parsed.width, parsed.height);
+                    System.out.println();
+                }
+                
+                System.out.println("Total moves: " + (statePath.size() - 1));
                 System.out.println("\nFinal Board State:");
                 BoardPrinter.printBoard(goalState, parsed.width, parsed.height);
             }
