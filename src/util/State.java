@@ -119,7 +119,7 @@ public class State {
         return this.cars.equals(other.cars);
     }
 
-    // Helper to reconstruct move history
+    // Helper to reconstruct move history( Debug doang tapi kalau penting jangan hapus)
     public List<String> getMoveHistory() {
         List<String> moves = new ArrayList<>();
         State cur = this;
