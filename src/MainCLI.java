@@ -1,8 +1,6 @@
 import util.Parser;
 import util.State;
-import pathfinding.UCS;
-import pathfinding.AStar;
-import pathfinding.GreedyBFS;
+import pathfinding.*;
 import util.Car;
 import util.BoardPrinter;
 import heuristic.*;
@@ -27,21 +25,24 @@ public class MainCLI {
             System.out.println("1. A*");
             System.out.println("2. UCS");
             System.out.println("3. Greedy Best-First Search");
-            System.out.print("Enter your choice (1, 2, or 3): ");
+            System.out.println("4. Iterative Deepening A*");
+            System.out.print("Enter your choice (1-4): ");
             int choice = scanner.nextInt();
-            if (choice < 1 || choice > 3) {
+            if (choice < 1 || choice > 4) {
                 System.out.println("Invalid choice. Defaulting to UCS.");
                 choice = 2;
             }
             
             // If using A* or Greedy, ask for heuristic
             Heuristic selectedHeuristic = null;
-            if (choice == 1 || choice == 3) {
+            if (choice == 1 || choice == 3 || choice == 4 || choice == 5) {
                 System.out.println("\nChoose a heuristic:");
                 System.out.println("1. Distance to exit");
                 System.out.println("2. Number of blocking cars");
                 System.out.println("3. Combined (distance + blocking cars)");
-                System.out.print("Enter your choice (1, 2, or 3): ");
+                System.out.println("4. Mobility Score");
+                System.out.println("5. Blocking Car Distance");
+                System.out.print("Enter your choice (1, 2, 3, 4, or 5): ");
                 int heuristicChoice = scanner.nextInt();
                 
                 switch (heuristicChoice) {
@@ -53,6 +54,12 @@ public class MainCLI {
                         break;
                     case 3:
                         selectedHeuristic = new CombinedHeuristic();
+                        break;
+                    case 4: 
+                        selectedHeuristic = new MobilityScore(); 
+                        break;
+                    case 5: 
+                        selectedHeuristic = new BlockingCarDistance(); 
                         break;
                     default:
                         System.out.println("Invalid choice. Using Distance heuristic.");
@@ -72,10 +79,15 @@ public class MainCLI {
                 System.out.println("\nUsing UCS algorithm...");
                 UCS solver = new UCS(parsed.width, parsed.height, parsed.kRow, parsed.kCol, parsed.exitDirection);
                 goalState = solver.find(root);
-            } else {
+            } else if (choice == 3) {
                 // Greedy Best-First Search algorithm
                 System.out.println("\nUsing Greedy Best-First Search algorithm...");
                 GreedyBFS solver = new GreedyBFS(parsed.width, parsed.height, parsed.kRow, parsed.kCol, parsed.exitDirection, selectedHeuristic);
+                goalState = solver.find(root);
+            } else {
+                // Iterative Deepening A* algorithm
+                System.out.println("\nUsing Iterative Deepening A* algorithm...");
+                IDAStar solver = new IDAStar(parsed.width, parsed.height, parsed.kRow, parsed.kCol, parsed.exitDirection, selectedHeuristic);
                 goalState = solver.find(root);
             }
             
