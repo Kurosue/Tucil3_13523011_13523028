@@ -14,7 +14,7 @@ Menuju terang dalam kegelapan.
 
 public class AStar {
     private PriorityQueue<State> queue;
-    private Set<State> visited;
+    private Map<String, Integer> costMap; // Maps state hash to best cost found
     private int width, height;
     private int kRow, kCol;
     private String exitDirection;
@@ -33,7 +33,7 @@ public class AStar {
             int f2 = s2.cost + calculateHeuristic(s2);
             return Integer.compare(f1, f2);
         });
-        this.visited = new HashSet<>();
+        this.costMap = new HashMap<>();
     }
     
     private int calculateHeuristic(State state) {
@@ -42,8 +42,7 @@ public class AStar {
     
     public State find(State initialState) {
         queue.add(initialState);
-        Map<State, Integer> bestCost = new HashMap<>();
-        bestCost.put(initialState, initialState.cost);
+        costMap.put(getStateHash(initialState), initialState.cost);
         int visitedNode = 0;
         
         System.out.println("Using A* with heuristic: " + heuristic.getName());
@@ -51,6 +50,11 @@ public class AStar {
         while (!queue.isEmpty()) {
             State currentState = queue.poll();
             visitedNode++;
+            
+            String stateHash = getStateHash(currentState);
+            if (costMap.containsKey(stateHash) && costMap.get(stateHash) < currentState.cost) {
+                continue; // Skip this state if a better path was already found
+            }
             
             if (visitedNode % 1000 == 0) {
                 System.out.println("Visited " + visitedNode + " nodes so far");
@@ -65,9 +69,9 @@ public class AStar {
             
             List<State> successors = currentState.generateNextStates(width, height);
             for (State successor : successors) {
-                Integer previousCost = bestCost.get(successor);
-                if (previousCost == null || successor.cost < previousCost) {
-                    bestCost.put(successor, successor.cost);
+                String successorHash = getStateHash(successor);
+                if (!costMap.containsKey(successorHash) || successor.cost < costMap.get(successorHash)) {
+                    costMap.put(successorHash, successor.cost);
                     queue.add(successor);
                 }
             }
@@ -75,5 +79,31 @@ public class AStar {
         
         System.out.println("Goal state not reachable after exploring " + visitedNode + " nodes.");
         return null;
+    }
+    
+    /**
+     * Generate a hash string for a state based on car positions
+     * This is used as a key for the costMap
+     */
+    private String getStateHash(State state) {
+        // A more efficient and reliable way of hashing the state 
+        // than relying on the default hashCode
+        StringBuilder sb = new StringBuilder();
+        
+        // Sort car IDs for consistent ordering
+        List<Character> carIds = new ArrayList<>(state.cars.keySet());
+        Collections.sort(carIds);
+        
+        for (char carId : carIds) {
+            sb.append(carId).append(":");
+            
+            // Append bitmask representation for each car
+            for (long mask : state.cars.get(carId).bitmask) {
+                sb.append(mask).append(",");
+            }
+            sb.append(";");
+        }
+        
+        return sb.toString();
     }
 }
