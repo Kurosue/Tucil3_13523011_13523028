@@ -17,7 +17,7 @@ public class Shifting {
         long[] bitmask1 = new long[chunkCount];
         bitmask1[0] |= (1L << 0);  // Position (0,0)
         bitmask1[0] |= (1L << 1);  // Position (0,1)
-        Car horizontalCar = new Car('A', true, 2, bitmask1);
+        Car horizontalCar = new Car('A', true, 2, bitmask1, -1, 0);
         
         printCarPosition(horizontalCar, width, height);
         
@@ -42,7 +42,7 @@ public class Shifting {
         bitmask2[0] |= (1L << (1 * width + 1));  // Position (1,1)
         bitmask2[0] |= (1L << (2 * width + 1));  // Position (2,1)
         bitmask2[0] |= (1L << (3 * width + 1));  // Position (3,1)
-        Car verticalCar = new Car('B', false, 3, bitmask2);
+        Car verticalCar = new Car('B', false, 3, bitmask2, 1, -1);
         
         printCarPosition(verticalCar, width, height);
         

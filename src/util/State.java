@@ -11,6 +11,7 @@ public class State {
     public Map<Character, Car> cars;
     public State parent;
     public String move;
+    public long[] occupied;
     public int cost;
 
     public State(Map<Character, Car> cars, State parent, String move, int cost) {
@@ -18,6 +19,20 @@ public class State {
         this.parent = parent;
         this.move = move;
         this.cost = cost;
+        
+        int totalBits = 64;
+        for (Car car : cars.values()) {
+            totalBits = Math.max(totalBits, car.bitmask.length * 64);
+        }
+        
+        int chunkCount = (totalBits + 63) / 64;
+        this.occupied = new long[chunkCount];
+        
+        for (Car car : cars.values()) {
+            for (int i = 0; i < car.bitmask.length && i < chunkCount; i++) {
+                this.occupied[i] |= car.bitmask[i];
+            }
+        }
     }
 
     public State copy(State newParent, String newMove) {
@@ -34,7 +49,7 @@ public class State {
         long[] occupied = new long[chunkCount];
 
         for (Car car : cars.values()) {
-            for (int i = 0; i < chunkCount; i++) {
+            for (int i = 0; i < chunkCount && i < car.bitmask.length; i++) {
                 occupied[i] |= car.bitmask[i];
             }
         }
@@ -42,50 +57,153 @@ public class State {
         return occupied;
     }
 
-    public boolean isGoalReached(int width, int height) {
-        Car p = this.cars.get('P');
-
-        // Cek setiap posisi bit mobil P
-        for (int chunk = 0; chunk < p.bitmask.length; chunk++) {
-            long bits = p.bitmask[chunk];
-            for (int bit = 0; bit < 64; bit++) {
-                if ((bits & (1L << bit)) != 0) {
-                    int index = chunk * 64 + bit;
-                    int row = index / width;
-                    int col = index % width;
-
-                    // Cek jika mobil horizontal: col == width - 1
-                    if (p.isHorizontal && (col == 0 || col == width - 1)) return true;
-
-                    // Cek jika mobil vertikal: row == height - 1
-                    if (!p.isHorizontal && (row == 0 || row == height - 1)) return true;
+    public boolean isReached(int width, int height, int kRow, int kCol, String exitDirection) {
+        Car primaryCar = this.cars.get('P');
+        if (primaryCar == null) return false;
+        
+        // Check correct orientation for the specified exit direction
+        if (primaryCar.isHorizontal) {
+            // Horizontal car can only exit left or right
+            if (!("right".equals(exitDirection) || "left".equals(exitDirection))) return false;
+            
+            // Find P's leftmost and rightmost positions
+            int pLeftmostCol = -1;
+            int pRightmostCol = -1;
+            
+            for (int c = 0; c < width; c++) {
+                int idx = primaryCar.row * width + c;
+                int chunk = idx / 64;
+                int bit = idx % 64;
+                
+                if (chunk < primaryCar.bitmask.length && (primaryCar.bitmask[chunk] & (1L << bit)) != 0) {
+                    if (pLeftmostCol == -1) pLeftmostCol = c;
+                    pRightmostCol = c;
                 }
             }
+            
+            // Check clear path to exit
+            if ("right".equals(exitDirection)) {
+                // Check if path to the right edge is clear
+                for (int c = pRightmostCol + 1; c < width; c++) {
+                    int idx = primaryCar.row * width + c;
+                    int chunk = idx / 64;
+                    int bit = idx % 64;
+                    
+                    if (chunk < occupied.length && (occupied[chunk] & (1L << bit)) != 0) {
+                        return false; // Blocked
+                    }
+                }
+                return true; // Clear path to right edge
+            } else { // left
+                // Check if path to the left edge is clear
+                for (int c = 0; c < pLeftmostCol; c++) {
+                    int idx = primaryCar.row * width + c;
+                    int chunk = idx / 64;
+                    int bit = idx % 64;
+                    
+                    if (chunk < occupied.length && (occupied[chunk] & (1L << bit)) != 0) {
+                        return false; // Blocked
+                    }
+                }
+                return true; // Clear path to left edge
+            }
+        } else { // Vertical car
+            // Vertical car can only exit top or bottom
+            if (!("top".equals(exitDirection) || "bottom".equals(exitDirection))) return false;
+            
+            // Find P's topmost and bottommost positions
+            int pTopmostRow = -1;
+            int pBottommostRow = -1;
+            
+            for (int r = 0; r < height; r++) {
+                int idx = r * width + primaryCar.col;
+                int chunk = idx / 64;
+                int bit = idx % 64;
+                
+                if (chunk < primaryCar.bitmask.length && (primaryCar.bitmask[chunk] & (1L << bit)) != 0) {
+                    if (pTopmostRow == -1) pTopmostRow = r;
+                    pBottommostRow = r;
+                }
+            }
+            
+            // Check clear path to exit
+            if ("bottom".equals(exitDirection)) {
+                // Check if path to the bottom edge is clear
+                for (int r = pBottommostRow + 1; r < height; r++) {
+                    int idx = r * width + primaryCar.col;
+                    int chunk = idx / 64;
+                    int bit = idx % 64;
+                    
+                    if (chunk < occupied.length && (occupied[chunk] & (1L << bit)) != 0) {
+                        return false; // Blocked
+                    }
+                }
+                return true; // Clear path to bottom edge
+            } else { // top
+                // Check if path to the top edge is clear
+                for (int r = 0; r < pTopmostRow; r++) {
+                    int idx = r * width + primaryCar.col;
+                    int chunk = idx / 64;
+                    int bit = idx % 64;
+                    
+                    if (chunk < occupied.length && (occupied[chunk] & (1L << bit)) != 0) {
+                        return false; // Blocked
+                    }
+                }
+                return true; // Clear path to top edge
+            }
         }
-
-        return false;
     }
-
 
     public List<State> generateNextStates(int width, int height) {
         List<State> nextStates = new ArrayList<>();
-        long[] occupied = buildOccupiedMask(cars, width, height);
-
+        
         for (Map.Entry<Character, Car> entry : cars.entrySet()) {
+            char carId = entry.getKey();
             Car car = entry.getValue();
+            
             for (Direction dir : car.getPossibleDirections()) {
-                Car moved = car.shift(dir, width, height);
-                while (moved != null && !collides(moved, occupied, car.id)) {
-                    String moveStr = car.id + "-" + dir.name().toLowerCase();
-                    State next = this.copy(this, moveStr);
-                    next.cars.put(car.id, moved);
-                    nextStates.add(next);
-
-                    moved = moved.shift(dir, width, height);
+                String moveDesc = carId + "-" + dir.name().toLowerCase();
+                
+                Car movedCar = car.shift(dir, width, height);
+                
+                while (movedCar != null) {
+                    boolean collision = false;
+                    
+                    Map<Character, Car> tempCars = new HashMap<>(cars);
+                    tempCars.put(carId, movedCar);
+                    long[] tempOccupied = buildOccupiedMask(tempCars, width, height);
+                    
+                    int totalBits = 0;
+                    for (Car c : tempCars.values()) {
+                        for (int i = 0; i < c.bitmask.length; i++) {
+                            totalBits += Long.bitCount(c.bitmask[i]);
+                        }
+                    }
+                    
+                    int occupiedBits = 0;
+                    for (int i = 0; i < tempOccupied.length; i++) {
+                        occupiedBits += Long.bitCount(tempOccupied[i]);
+                    }
+                    
+                    if (totalBits != occupiedBits) {
+                        collision = true;
+                    }
+                    
+                    if (!collision) {
+                        State nextState = this.copy(this, moveDesc);
+                        nextState.cars.put(carId, movedCar);
+                        nextState.occupied = tempOccupied;
+                        nextStates.add(nextState);
+                        
+                        movedCar = movedCar.shift(dir, width, height);
+                    } else {
+                        break;
+                    }
                 }
             }
         }
-
+        
         return nextStates;
     }
 
@@ -107,7 +225,6 @@ public class State {
         return false;
     }
 
-    // For visited checking
     @Override
     public int hashCode() {
         return cars.hashCode();
@@ -119,7 +236,6 @@ public class State {
         return this.cars.equals(other.cars);
     }
 
-    // Helper to reconstruct move history( Debug doang tapi kalau penting jangan hapus)
     public List<String> getMoveHistory() {
         List<String> moves = new ArrayList<>();
         State cur = this;

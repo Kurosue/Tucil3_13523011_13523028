@@ -7,12 +7,16 @@ public class Car {
     public boolean isHorizontal;
     public int length;
     public long[] bitmask;
+    public int col; // Kalau horizontal, nilai -1
+    public int row; // Kalau vertical, nilai -1
 
-    public Car(char id, boolean isHorizontal, int length, long[] bitmask) {
+    public Car(char id, boolean isHorizontal, int length, long[] bitmask, int col, int row) {
         this.id = id;
         this.isHorizontal = isHorizontal;
         this.length = length;
         this.bitmask = bitmask;
+        this.col = col;
+        this.row = row;
     }
 
     public enum Direction {
@@ -20,7 +24,7 @@ public class Car {
     }
 
     public Car copy() {
-        return new Car(id, isHorizontal, length, bitmask.clone());
+        return new Car(id, isHorizontal, length, bitmask.clone(), col, row);
     }
 
     public List<Direction> getPossibleDirections() {
@@ -61,6 +65,6 @@ public class Car {
             }
         }
 
-        return new Car(id, isHorizontal, length, shifted);
+        return new Car(id, isHorizontal, length, shifted, col, row);
     }
 }
