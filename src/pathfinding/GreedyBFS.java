@@ -3,9 +3,8 @@ package pathfinding;
 import java.util.*;
 import util.State;
 import heuristic.Heuristic;
-import heuristic.Distance;
 
-public class AStar {
+public class GreedyBFS {
     private PriorityQueue<State> queue;
     private Set<State> visited;
     private int width, height;
@@ -13,7 +12,7 @@ public class AStar {
     private String exitDirection;
     private Heuristic heuristic;
     
-    public AStar(int width, int height, int kRow, int kCol, String exitDirection, Heuristic heuristic) {
+    public GreedyBFS(int width, int height, int kRow, int kCol, String exitDirection, Heuristic heuristic) {
         this.width = width;
         this.height = height;
         this.kRow = kRow;
@@ -21,11 +20,11 @@ public class AStar {
         this.exitDirection = exitDirection;
         this.heuristic = heuristic;
         
-        // Priority queue with f(n) = g(n) + h(n) comparator
+        // Priority queue ordered only by heuristic value
         this.queue = new PriorityQueue<>((s1, s2) -> {
-            int f1 = s1.cost + calculateHeuristic(s1);
-            int f2 = s2.cost + calculateHeuristic(s2);
-            return Integer.compare(f1, f2);
+            int h1 = calculateHeuristic(s1);
+            int h2 = calculateHeuristic(s2);
+            return Integer.compare(h1, h2);
         });
         this.visited = new HashSet<>();
     }
@@ -37,11 +36,10 @@ public class AStar {
     
     public State find(State initialState) {
         queue.add(initialState);
-        Map<State, Integer> bestCost = new HashMap<>();
-        bestCost.put(initialState, initialState.cost);
+        visited.add(initialState);
         int visitedNode = 0;
         
-        System.out.println("Using A* with heuristic: " + heuristic.getName());
+        System.out.println("Using Greedy Best-First Search with heuristic: " + heuristic.getName());
         
         while (!queue.isEmpty()) {
             State currentState = queue.poll();
@@ -61,9 +59,8 @@ public class AStar {
             
             List<State> successors = currentState.generateNextStates(width, height);
             for (State successor : successors) {
-                Integer previousCost = bestCost.get(successor);
-                if (previousCost == null || successor.cost < previousCost) {
-                    bestCost.put(successor, successor.cost);
+                if (!visited.contains(successor)) {
+                    visited.add(successor);
                     queue.add(successor);
                 }
             }
