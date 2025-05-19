@@ -18,7 +18,6 @@ public class MainCLI {
         String inputFile = scanner.nextLine();
         
         try {
-            long startTime = System.currentTimeMillis();
 
             Parser.ParsedResult parsed = Parser.parseFile(inputFile);
             State root = parsed.initialState;
@@ -72,6 +71,7 @@ public class MainCLI {
 
             State goalState = null;
             
+            long startTime = System.currentTimeMillis();
             if (choice == 1) {
                 // A* algorithm
                 System.out.println("\nUsing A* algorithm...");
@@ -93,6 +93,7 @@ public class MainCLI {
                 IDAStar solver = new IDAStar(parsed.width, parsed.height, parsed.kRow, parsed.kCol, parsed.exitDirection, selectedHeuristic);
                 goalState = solver.find(root);
             }
+            long endTime = System.currentTimeMillis();
             
             if (goalState != null) {
                 System.out.println("\nSolution Path:");
@@ -124,7 +125,6 @@ public class MainCLI {
                 BoardPrinter.printBoard(goalState, parsed.width, parsed.height);
             }
 
-            long endTime = System.currentTimeMillis();
             System.out.printf("\nExecution time: %.3f seconds\n", (endTime - startTime) / 1000.0);
 
         } catch (Exception e) {

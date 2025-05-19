@@ -13,14 +13,6 @@ public class BoardPrinter {
             }
         }
 
-        Car primaryCar = state.cars.get('P');
-        if (primaryCar != null) {
-            if (primaryCar.isHorizontal) {
-                board[primaryCar.row][width-1] = 'K';
-            } else {
-                board[height-1][primaryCar.col] = 'K';
-            }
-        }
 
         for (Map.Entry<Character, Car> entry : state.cars.entrySet()) {
             char carId = entry.getKey();
