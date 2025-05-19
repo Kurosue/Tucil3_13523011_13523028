@@ -68,7 +68,7 @@ public class Parser {
                     if (kcount > 1) {
                         throw new IllegalArgumentException("Hanya ada satu K yang diperbolehkan");
                     }
-                    if(kRow < 0 || kRow >= height || kCol < 0 || kCol >= width) {
+                    if((kRow >= height && kCol >= width) || (kRow < height && kCol < width) ) {
                         throw new IllegalArgumentException("Lokasi K invalid wak :(");
                     }
                     
