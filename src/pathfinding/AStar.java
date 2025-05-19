@@ -5,6 +5,13 @@ import util.State;
 import heuristic.Heuristic;
 import heuristic.Distance;
 
+/* 
+Dalam malam bertabur bintang,
+Langkah awal terpampang,
+Menapaki simpul-simpul harapan,
+Menuju terang dalam kegelapan.
+*/
+
 public class AStar {
     private PriorityQueue<State> queue;
     private Set<State> visited;
@@ -21,7 +28,6 @@ public class AStar {
         this.exitDirection = exitDirection;
         this.heuristic = heuristic;
         
-        // Priority queue with f(n) = g(n) + h(n) comparator
         this.queue = new PriorityQueue<>((s1, s2) -> {
             int f1 = s1.cost + calculateHeuristic(s1);
             int f2 = s2.cost + calculateHeuristic(s2);
@@ -30,7 +36,6 @@ public class AStar {
         this.visited = new HashSet<>();
     }
     
-    // Use the provided heuristic
     private int calculateHeuristic(State state) {
         return heuristic.calculate(state, width, height, exitDirection);
     }
@@ -47,7 +52,6 @@ public class AStar {
             State currentState = queue.poll();
             visitedNode++;
             
-            // Debug output for large searches
             if (visitedNode % 1000 == 0) {
                 System.out.println("Visited " + visitedNode + " nodes so far");
             }
