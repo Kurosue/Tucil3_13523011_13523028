@@ -62,7 +62,6 @@ public class Parser {
         int n = Integer.parseInt(lines.get(1).trim()); // Ga kepake
     
         Map<Character, List<Integer>> carPositions = new HashMap<>();
-        char[][] board = new char[height][width];
         
         // Find K position
         int kRow = -1;
@@ -71,13 +70,21 @@ public class Parser {
         String exitDirection = "";
         
         Boolean vk = false;
-        for (int i = 0; i < lines.size()-2; i++) {
+        int i = 0;
+        int j = 0;
+        while(i < lines.size()-2) {
             String row = lines.get(i + 2);
             Boolean k = false;
-            for (int j = 0; j < row.length(); j++) {
+            j = 0;
+            while (j < row.length()) {
                 char c = row.charAt(j);
-                if (c == ' ') continue;
-                
+                if (c == ' ')
+                {
+                    if(!(i == 0 && lines.size()-2 > height))
+                    {
+                        k = true;
+                    }
+                }
                 if (c == 'K') {
                     if(i == 0)
                     {
@@ -91,7 +98,7 @@ public class Parser {
                     if (kcount > 1) {
                         throw new IllegalArgumentException("Hanya ada satu K yang diperbolehkan");
                     }
-                    if((kRow >= height && kCol >= width) || (kRow < height && kCol < width) ) {
+                    if(kRow == 0 && kCol == 0 || kRow == width && kCol == 0 || kRow == 0 && kCol == height || kRow == width && kCol == height || ((kRow >  0 && kRow < height && lines.size() == height) && (kCol >  0 && kCol < width && row.length() == width))) {
                         throw new IllegalArgumentException("Lokasi K invalid wak :(");
                     }
                     
@@ -99,35 +106,30 @@ public class Parser {
                     else if (j == width) exitDirection = "right";
                     else if (i == 0) exitDirection = "top";
                     else exitDirection = "bottom";
-                    
-                    continue;
                 }
-                else{
+                if (c != '.' && c != 'K' && c != ' ')
+                {
+
+                    int idx = 0;
                     if(k)
                     {
-                        board[i][j-1] = c;
+                        idx = i * width + (j - 1);
                     } else if(vk)
                     {
-                        board[i-1][j] = c;
-                    } else
-                    {
-                        board[i][j] = c;
+                        idx = (i - 1) * width + j;
+                    } else{
+                        idx = i * width + j;
                     }
+                    carPositions.putIfAbsent(c, new ArrayList<>());
+                    carPositions.get(c).add(idx);
                 }
-                if (c == '.' || c == 'K') continue;
-                int idx = 0;
-                if(k)
-                {
-                    idx = i * width + (j - 1);
-                } else if(vk)
-                {
-                    idx = (i - 1) * width + j;
-                } else{
-                    idx = i * width + j;
-                }
-                carPositions.putIfAbsent(c, new ArrayList<>());
-                carPositions.get(c).add(idx);
+                j++;
             }
+            i++;
+        }
+        // Validasi jika K gaada
+        if (kRow == -1 || kCol == -1) {
+            throw new IllegalArgumentException("Mana K yang Kau janjikan itu WOK!!");
         }
     
         // Validate car positions
@@ -139,7 +141,7 @@ public class Parser {
                 // Check if horizontal (all positions in the same row)
                 boolean sameRow = true;
                 int firstRow = positions.get(0) / width;
-                for (int i = 1; i < positions.size(); i++) {
+                for (i = 1; i < positions.size(); i++) {
                     if (positions.get(i) / width != firstRow) {
                         sameRow = false;
                         break;
@@ -149,7 +151,7 @@ public class Parser {
                 // Check if vertical (all positions in the same column)
                 boolean sameCol = true;
                 int firstCol = positions.get(0) % width;
-                for (int i = 1; i < positions.size(); i++) {
+                for (i= 1; i < positions.size(); i++) {
                     if (positions.get(i) % width != firstCol) {
                         sameCol = false;
                         break;
