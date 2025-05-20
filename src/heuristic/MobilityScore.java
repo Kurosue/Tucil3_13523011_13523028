@@ -4,13 +4,31 @@ import java.util.*;
 import util.Car;
 import util.State;
 
+/**
+ * Heuristic that evaluates states based on car mobility (available moves).
+ */
 public class MobilityScore implements Heuristic {
     
+    /**
+     * Returns the name of this heuristic function.
+     * 
+     * @return String name of the heuristic
+     */
     @Override
     public String getName() {
         return "Mobility Score";
     }
     
+    /**
+     * Calculates a heuristic value based on mobility of cars in the puzzle.
+     * Higher mobility (more available moves) results in a lower heuristic value.
+     * 
+     * @param state The current puzzle state
+     * @param width Width of the puzzle grid
+     * @param height Height of the puzzle grid
+     * @param exitDirection Direction of the exit ("left", "right", "top", "bottom")
+     * @return Heuristic value based on car mobility or MAX_VALUE if incompatible with exit
+     */
     @Override
     public int calculate(State state, int width, int height, String exitDirection) {
         // Get primary car
@@ -37,9 +55,6 @@ public class MobilityScore implements Heuristic {
             totalAvailableMoves += moveCount;
         }
         
-        // We want high mobility (more available moves) = lower heuristic value
-        // But we especially want the primary car to have high mobility
-        
         // Basic distance heuristic to ensure admissibility
         int distanceValue;
         if (primaryCar.isHorizontal) {
@@ -65,21 +80,29 @@ public class MobilityScore implements Heuristic {
             return distanceValue + expectedMaxCars * 2;
         }
         
-        // The fewer available moves, the higher the heuristic value
         return distanceValue + (expectedMaxCars - (totalAvailableMoves / 2));
     }
     
+    /**
+     * Counts how many possible moves a car can make in its current position.
+     * For horizontal cars, checks left and right movements.
+     * For vertical cars, checks up and down movements.
+     * 
+     * @param car The car to evaluate
+     * @param state Current puzzle state
+     * @param width Width of the puzzle grid
+     * @param height Height of the puzzle grid
+     * @return Number of possible moves the car can make
+     */
     private int countPossibleMoves(Car car, State state, int width, int height) {
         int moveCount = 0;
         
-        // For horizontal cars, check left and right
         if (car.isHorizontal) {
-            // Check left
             for (int offset = 1; ; offset++) {
                 int leftmostCol = Distance.findLeftmostColumn(car, width);
                 int checkCol = leftmostCol - offset;
                 
-                if (checkCol < 0) break; // Off the board
+                if (checkCol < 0) break;
                 
                 int idx = car.row * width + checkCol;
                 int chunk = idx / 64;
@@ -87,7 +110,7 @@ public class MobilityScore implements Heuristic {
                 
                 if (chunk < state.occupied.length && 
                     (state.occupied[chunk] & (1L << bit)) != 0) {
-                    break; // Occupied
+                    break;
                 }
                 
                 moveCount++;
@@ -98,7 +121,7 @@ public class MobilityScore implements Heuristic {
                 int rightmostCol = Distance.findRightmostColumn(car, width);
                 int checkCol = rightmostCol + offset;
                 
-                if (checkCol >= width) break; // Off the board
+                if (checkCol >= width) break;
                 
                 int idx = car.row * width + checkCol;
                 int chunk = idx / 64;
@@ -106,20 +129,18 @@ public class MobilityScore implements Heuristic {
                 
                 if (chunk < state.occupied.length && 
                     (state.occupied[chunk] & (1L << bit)) != 0) {
-                    break; // Occupied
+                    break;
                 }
                 
                 moveCount++;
             }
         } 
-        // For vertical cars, check up and down
         else {
-            // Check up
             for (int offset = 1; ; offset++) {
                 int topmostRow = Distance.findTopmostRow(car, width);
                 int checkRow = topmostRow - offset;
                 
-                if (checkRow < 0) break; // Off the board
+                if (checkRow < 0) break;
                 
                 int idx = checkRow * width + car.col;
                 int chunk = idx / 64;

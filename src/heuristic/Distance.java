@@ -3,13 +3,30 @@ package heuristic;
 import util.Car;
 import util.State;
 
+/**
+ * Simple heuristic that calculates the distance from the primary car to the exit.
+ */
 public class Distance implements Heuristic {
     
+    /**
+     * Returns the name of this heuristic function.
+     * 
+     * @return String name of the heuristic
+     */
     @Override
     public String getName() {
         return "Distance to Exit";
     }
     
+    /**
+     * Calculates the direct distance from the primary car to the exit edge.
+     * 
+     * @param state The current puzzle state
+     * @param width Width of the puzzle grid
+     * @param height Height of the puzzle grid
+     * @param exitDirection Direction of the exit ("left", "right", "top", "bottom")
+     * @return Distance to exit or MAX_VALUE if car orientation is incompatible with exit
+     */
     @Override
     public int calculate(State state, int width, int height, String exitDirection) {
         Car primaryCar = state.cars.get('P');
@@ -50,7 +67,13 @@ public class Distance implements Heuristic {
         }
     }
     
-    // Find the leftmost column occupied by a car
+    /**
+     * Determines the leftmost column occupied by a car.
+     * 
+     * @param car The car to analyze
+     * @param width Width of the puzzle grid
+     * @return Index of the leftmost column
+     */
     public static int findLeftmostColumn(Car car, int width) {
         int leftmost = Integer.MAX_VALUE;
         for (int chunk = 0; chunk < car.bitmask.length; chunk++) {
@@ -68,7 +91,13 @@ public class Distance implements Heuristic {
         return leftmost;
     }
     
-    // Find the rightmost column occupied by a car
+    /**
+     * Determines the rightmost column occupied by a car.
+     * 
+     * @param car The car to analyze
+     * @param width Width of the puzzle grid
+     * @return Index of the rightmost column
+     */
     public static int findRightmostColumn(Car car, int width) {
         int rightmost = -1;
         for (int chunk = 0; chunk < car.bitmask.length; chunk++) {
@@ -86,7 +115,13 @@ public class Distance implements Heuristic {
         return rightmost;
     }
     
-    // Find the topmost row occupied by a car
+    /**
+     * Determines the topmost row occupied by a car.
+     * 
+     * @param car The car to analyze
+     * @param width Width of the puzzle grid
+     * @return Index of the topmost row
+     */
     public static int findTopmostRow(Car car, int width) {
         int topmost = Integer.MAX_VALUE;
         for (int chunk = 0; chunk < car.bitmask.length; chunk++) {
@@ -104,7 +139,13 @@ public class Distance implements Heuristic {
         return topmost;
     }
     
-    // Find the bottommost row occupied by a car
+    /**
+     * Determines the bottommost row occupied by a car.
+     * 
+     * @param car The car to analyze
+     * @param width Width of the puzzle grid
+     * @return Index of the bottommost row
+     */
     public static int findBottommostRow(Car car, int width) {
         int bottommost = -1;
         for (int chunk = 0; chunk < car.bitmask.length; chunk++) {

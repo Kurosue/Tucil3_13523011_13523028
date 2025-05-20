@@ -5,13 +5,30 @@ import java.util.Set;
 import util.Car;
 import util.State;
 
+/**
+ * Heuristic that counts the number of cars blocking the path to the exit.
+ */
 public class BlockingCars implements Heuristic {
     
+    /**
+     * Returns the name of this heuristic function.
+     * 
+     * @return String name of the heuristic
+     */
     @Override
     public String getName() {
         return "Number of Blocking Cars";
     }
     
+    /**
+     * Counts how many unique cars are blocking the path from the primary car to the exit.
+     * 
+     * @param state The current puzzle state
+     * @param width Width of the puzzle grid
+     * @param height Height of the puzzle grid
+     * @param exitDirection Direction of the exit ("left", "right", "top", "bottom")
+     * @return Number of blocking cars or MAX_VALUE if the primary car's orientation is incompatible with the exit
+     */
     @Override
     public int calculate(State state, int width, int height, String exitDirection) {
         Car primaryCar = state.cars.get('P');

@@ -7,6 +7,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import util.Car.Direction;
 
+/**
+ * Represents a state in the rush hour puzzle.
+ */
 public class State {
     public Map<Character, Car> cars;
     public State parent;
@@ -14,6 +17,14 @@ public class State {
     public long[] occupied;
     public int cost;
 
+    /**
+     * Creates a new state with the specified parameters.
+     * 
+     * @param cars Map of car IDs to Car objects
+     * @param parent Parent state that led to this state
+     * @param move Description of the move that created this state
+     * @param cost Path cost to reach this state
+     */
     public State(Map<Character, Car> cars, State parent, String move, int cost) {
         this.cars = cars;
         this.parent = parent;
@@ -35,6 +46,13 @@ public class State {
         }
     }
 
+    /**
+     * Creates a copy of the current state with a new parent and move.
+     * 
+     * @param newParent Parent state for the new copy
+     * @param newMove Move description for the new copy
+     * @return A new State object with incremented cost
+     */
     public State copy(State newParent, String newMove) {
         Map<Character, Car> newCars = new HashMap<>();
         for (Map.Entry<Character, Car> entry : cars.entrySet()) {
@@ -43,6 +61,14 @@ public class State {
         return new State(newCars, newParent, newMove, cost + 1);
     }
 
+    /**
+     * Builds a bit mask representing all occupied cells in the puzzle.
+     * 
+     * @param cars Map of cars on the board
+     * @param width Width of the puzzle grid
+     * @param height Height of the puzzle grid
+     * @return Long array representing occupied cells
+     */
     public static long[] buildOccupiedMask(Map<Character, Car> cars, int width, int height) {
         int totalBits = width * height;
         int chunkCount = (totalBits + 63) / 64;
@@ -57,6 +83,16 @@ public class State {
         return occupied;
     }
 
+    /**
+     * Checks if the primary car can reach the exit in the current state.
+     * 
+     * @param width Width of the puzzle grid
+     * @param height Height of the puzzle grid
+     * @param kRow Row position of the exit
+     * @param kCol Column position of the exit
+     * @param exitDirection Direction of the exit path
+     * @return True if goal state is reached, false otherwise
+     */
     public boolean isReached(int width, int height, int kRow, int kCol, String exitDirection) {
         Car primaryCar = this.cars.get('P');
         if (primaryCar == null) return false;
@@ -155,6 +191,13 @@ public class State {
         }
     }
 
+    /**
+     * Generates all valid next states by moving each car in all possible directions.
+     * 
+     * @param width Width of the puzzle grid
+     * @param height Height of the puzzle grid
+     * @return List of valid successor states
+     */
     public List<State> generateNextStates(int width, int height) {
         List<State> nextStates = new ArrayList<>();
         
@@ -207,6 +250,14 @@ public class State {
         return nextStates;
     }
 
+    /**
+     * Checks if a car collides with any other car when moved.
+     * 
+     * @param moved The moved car to check
+     * @param occupied Bit mask of occupied cells
+     * @param ignoreId ID of the car being moved
+     * @return True if collision detected, false otherwise
+     */
     private boolean collides(Car moved, long[] occupied, char ignoreId) {
         for (int i = 0; i < occupied.length; i++) {
             long mask = occupied[i];
@@ -225,17 +276,33 @@ public class State {
         return false;
     }
 
+    /**
+     * Generates a hash code for this state based on car positions.
+     * 
+     * @return Hash code value for this state
+     */
     @Override
     public int hashCode() {
         return cars.hashCode();
     }
 
+    /**
+     * Compares this state with another state for equality.
+     * 
+     * @param obj Object to compare with
+     * @return True if states are equal, false otherwise
+     */
     @Override
     public boolean equals(Object obj) {
         if (!(obj instanceof State other)) return false;
         return this.cars.equals(other.cars);
     }
 
+    /**
+     * Gets the complete history of moves that led to this state.
+     * 
+     * @return List of move descriptions in order from initial state
+     */
     public List<String> getMoveHistory() {
         List<String> moves = new ArrayList<>();
         State cur = this;

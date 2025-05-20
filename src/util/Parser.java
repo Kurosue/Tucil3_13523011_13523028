@@ -7,8 +7,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Utility class for parsing puzzle input files.
+ */
 public class Parser {
 
+    /**
+     * Container class for parsed puzzle information.
+     */
     public static class ParsedResult {
         public State initialState;
         public int width;
@@ -17,6 +23,16 @@ public class Parser {
         public int kCol;
         public String exitDirection; // "right", "left", "top", "bottom"
 
+        /**
+         * Creates a new parsed result with the specified parameters.
+         * 
+         * @param state Initial state of the puzzle
+         * @param width Width of the puzzle grid
+         * @param height Height of the puzzle grid
+         * @param kRow Row position of the exit
+         * @param kCol Column position of the exit
+         * @param exitDirection Direction of the exit
+         */
         public ParsedResult(State state, int width, int height, int kRow, int kCol, String exitDirection) {
             this.initialState = state;
             this.width = width;
@@ -27,6 +43,13 @@ public class Parser {
         }
     }
 
+    /**
+     * Parses a puzzle file and creates the initial state.
+     * 
+     * @param filename Path to the puzzle file
+     * @return ParsedResult containing initial state and puzzle parameters
+     * @throws IOException If file cannot be read
+     */
     public static ParsedResult parseFile(String filename) throws IOException {
         List<String> lines = Files.readAllLines(Paths.get(filename));
         String[] dims = lines.get(0).trim().split(" ");
@@ -140,7 +163,6 @@ public class Parser {
             }
         }
 
-        // Rest of parsing code remains the same
         Map<Character, Car> cars = new HashMap<>();
         for (Map.Entry<Character, List<Integer>> entry : carPositions.entrySet()) {
             char id = entry.getKey();

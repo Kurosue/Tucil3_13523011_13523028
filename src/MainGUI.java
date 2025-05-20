@@ -24,20 +24,17 @@ public class MainGUI extends Application {
     private GridPane boardPane;
     private int boardWidth = 6;
     private int boardHeight = 6;
-    private int numPieces = 5;
-    private char currentColor = 'P';  // Default to primary car
+    private char currentColor = 'P';
     private Button[][] boardButtons;
     private Map<Character, Color> colorMap = new HashMap<>();
-    private boolean isPrimaryHorizontal = true; // Horizontal by default
-    private int exitRow = 2;  // Default exit position
-    private int exitCol = 5;  // Default at right edge
-    private String exitDirection = "right"; // Default exit direction
+    private boolean isPrimaryHorizontal = true;
+    private int exitRow = 2;
+    private int exitCol = 5; 
+    private String exitDirection = "right"; // "right", "left", "top", "bottom"
     private List<State> solutionStates = new ArrayList<>();
     private int currentStepIndex = 0;
     private Timeline animationTimeline;
-    private State currentState;  // Current board state
-    
-    // New fields for algorithm selection
+    private State currentState;
     private String selectedAlgorithm = "A*";
     private Heuristic selectedHeuristic;
     private Label lblVisitedNodes;
@@ -47,6 +44,27 @@ public class MainGUI extends Application {
     private Button btnPlay;
     private Button btnNext;
     private Button btnSaveResultToText;
+    
+    // Add fields to track car placement
+    private boolean isPlacingCar = false;
+    private List<Point> carPlacementPoints = new ArrayList<>();
+    private Button instructionLabel;
+    
+    // Simple Point class to track grid coordinates
+    private static class Point {
+        int row, col;
+        Point(int row, int col) {
+            this.row = row;
+            this.col = col;
+        }
+        
+        @Override
+        public boolean equals(Object obj) {
+            if (!(obj instanceof Point)) return false;
+            Point other = (Point) obj;
+            return this.row == other.row && this.col == other.col;
+        }
+    }
     
     @Override
     public void start(Stage primaryStage) {
@@ -66,7 +84,7 @@ public class MainGUI extends Application {
         // Main layout with three sections: left panel, board, right panel
         HBox root = new HBox(15);  
         root.setPadding(new Insets(10));
-        root.setAlignment(Pos.CENTER); // Center the HBox in the window
+        root.setAlignment(Pos.CENTER);
         
         // Create left panel for configuration
         VBox leftPanel = new VBox(10);
@@ -152,14 +170,35 @@ public class MainGUI extends Application {
         orientationButtons.getChildren().addAll(rbHorizontal, rbVertical);
         orientationConfig.getChildren().addAll(lblOrientation, orientationButtons);
         
-        // Exit gate position controls
-        VBox exitGateConfig = new VBox(5);
-        exitGateConfig.setAlignment(Pos.CENTER_LEFT);
-        Label lblExitGate = new Label("Exit Position:");
-        Spinner<Integer> exitPositionSpinner = new Spinner<>(0, boardHeight-1, exitRow);
-        exitPositionSpinner.setEditable(true);
-        exitPositionSpinner.setMaxWidth(Double.MAX_VALUE);
-        exitGateConfig.getChildren().addAll(lblExitGate, exitPositionSpinner);
+        // Exit side configuration - replacing exit position spinner
+        VBox exitSideConfig = new VBox(5);
+        exitSideConfig.setAlignment(Pos.CENTER_LEFT);
+        Label lblExitSide = new Label("Exit Side:");
+        
+        // Toggle group for horizontal exit sides (initially visible)
+        ToggleGroup exitHorizontalGroup = new ToggleGroup();
+        HBox horizontalExitOptions = new HBox(10);
+        horizontalExitOptions.setAlignment(Pos.CENTER);
+        RadioButton rbRight = new RadioButton("Right");
+        rbRight.setToggleGroup(exitHorizontalGroup);
+        rbRight.setSelected(true); // Default to right
+        RadioButton rbLeft = new RadioButton("Left");
+        rbLeft.setToggleGroup(exitHorizontalGroup);
+        horizontalExitOptions.getChildren().addAll(rbRight, rbLeft);
+        
+        // Toggle group for vertical exit sides (initially hidden)
+        ToggleGroup exitVerticalGroup = new ToggleGroup();
+        HBox verticalExitOptions = new HBox(10);
+        verticalExitOptions.setAlignment(Pos.CENTER);
+        RadioButton rbBottom = new RadioButton("Bottom");
+        rbBottom.setToggleGroup(exitVerticalGroup);
+        rbBottom.setSelected(true); // Default to bottom
+        RadioButton rbTop = new RadioButton("Top");
+        rbTop.setToggleGroup(exitVerticalGroup);
+        verticalExitOptions.getChildren().addAll(rbBottom, rbTop);
+        
+        // Initially show horizontal options
+        exitSideConfig.getChildren().addAll(lblExitSide, horizontalExitOptions);
         
         // Apply button to set up the board
         Button btnApplyConfig = new Button("Apply Configuration");
@@ -176,8 +215,59 @@ public class MainGUI extends Application {
         ComboBox<String> colorComboBox = new ComboBox<>();
         colorComboBox.setMaxWidth(Double.MAX_VALUE);
         colorComboBox.setItems(FXCollections.observableArrayList("Primary (Red)"));
+        colorComboBox.getSelectionModel().selectFirst();
         colorSelection.getChildren().addAll(lblColor, colorComboBox);
-    
+        
+        // Add button to add new cars to the board
+        Button btnAddCar = new Button("Add New Car");
+        btnAddCar.setMaxWidth(Double.MAX_VALUE);
+        btnAddCar.setOnAction(e -> {
+            // Find next available car ID (letter)
+            char nextCarId = findNextAvailableCarId();
+            
+            // Don't proceed if we're out of letters
+            if (nextCarId > 'Z') {
+                Alert alert = new Alert(Alert.AlertType.WARNING);
+                alert.setTitle("Too Many Cars");
+                alert.setHeaderText("Maximum number of cars reached");
+                alert.setContentText("You can only have up to 26 non-primary cars (A-Z).");
+                alert.showAndWait();
+                return;
+            }
+            
+            // Add the new car to the state (with empty position for now)
+            Map<Character, Car> newCars = new HashMap<>(currentState.cars);
+            // Note: We're not adding an actual car yet, just reserving the ID
+            
+            // Rebuild the dropdown with sorted vehicles
+            colorComboBox.getItems().clear();
+            colorComboBox.getItems().add("Primary (Red)");
+            
+            // Get all existing car IDs plus the new one, sorted alphabetically
+            List<Character> carIds = new ArrayList<>(currentState.cars.keySet());
+            if (!carIds.contains(nextCarId)) {
+                carIds.add(nextCarId);
+            }
+            Collections.sort(carIds);
+            
+            // Add all non-primary cars to the dropdown
+            for (char carId : carIds) {
+                if (carId != 'P') {
+                    colorComboBox.getItems().add("Vehicle " + carId);
+                }
+            }
+            
+            // Select the new car
+            colorComboBox.getSelectionModel().select("Vehicle " + nextCarId);
+            
+            // Explicitly set the current color
+            currentColor = nextCarId;
+            updateCarPlacementMode();
+        });
+        
+        // Add the new car button right after the color selection dropdown
+        colorSelection.getChildren().add(btnAddCar);
+
         // Create legend panel to show colors
         Label legendTitle = new Label("Color Legend:");
         FlowPane colorLegend = new FlowPane();
@@ -185,6 +275,13 @@ public class MainGUI extends Application {
         colorLegend.setVgap(5);
         colorLegend.setAlignment(Pos.CENTER);
         colorLegend.setPrefWrapLength(200);
+        
+        // Add exit direction info to legend
+        Label exitInfoLabel = new Label("Exit: ");
+        Label exitDirectionLabel = new Label("Right side");
+        exitDirectionLabel.setStyle("-fx-font-weight: bold;");
+        HBox exitInfo = new HBox(5, exitInfoLabel, exitDirectionLabel);
+        exitInfo.setAlignment(Pos.CENTER_LEFT);
         
         // Load and solve buttons
         Label lblOperations = new Label("Operations");
@@ -227,7 +324,7 @@ public class MainGUI extends Application {
             algorithmConfig,
             heuristicConfig,
             orientationConfig,
-            exitGateConfig,
+            exitSideConfig,
             btnApplyConfig
         );
         
@@ -237,6 +334,7 @@ public class MainGUI extends Application {
             colorSelection,
             legendTitle,
             colorLegend,
+            exitInfo,
             new Separator(),
             lblOperations,
             btnLoadFromFile,
@@ -254,8 +352,37 @@ public class MainGUI extends Application {
         root.getChildren().addAll(leftPanel, boardContainer, rightPanel);
         
         // Create initial state
-        selectedHeuristic = new Distance(); // Default heuristic
+        selectedHeuristic = new Distance();
         initializeEmptyState();
+        
+        // Exit side handlers
+        rbRight.setOnAction(e -> {
+            exitDirection = "right";
+            exitDirectionLabel.setText("Right side");
+            exitCol = boardWidth - 1;
+            updateBoardFromState();
+        });
+        
+        rbLeft.setOnAction(e -> {
+            exitDirection = "left";
+            exitDirectionLabel.setText("Left side");
+            exitCol = 0;
+            updateBoardFromState();
+        });
+        
+        rbBottom.setOnAction(e -> {
+            exitDirection = "bottom";
+            exitDirectionLabel.setText("Bottom side");
+            exitRow = boardHeight - 1;
+            updateBoardFromState();
+        });
+        
+        rbTop.setOnAction(e -> {
+            exitDirection = "top";
+            exitDirectionLabel.setText("Top side");
+            exitRow = 0;
+            updateBoardFromState();
+        });
         
         // Event handlers for apply config button
         btnApplyConfig.setOnAction(e -> {
@@ -276,7 +403,7 @@ public class MainGUI extends Application {
                     selectedHeuristic = new CombinedHeuristic();
                     break;
                 case "Mobility Score":
-                    selectedHeuristic = new MobilityScore();
+                    selectedHeuristic = new MobilityScore(); 
                     break;
                 case "Blocking Car Distance":
                     selectedHeuristic = new BlockingCarDistance();
@@ -286,29 +413,36 @@ public class MainGUI extends Application {
                     break;
             }
             
-            // Update exit position spinner max value based on board dimensions
-            int maxPos = isPrimaryHorizontal ? boardHeight-1 : boardWidth-1;
-            exitPositionSpinner.setValueFactory(
-                new SpinnerValueFactory.IntegerSpinnerValueFactory(0, maxPos, 
-                    Math.min(exitPositionSpinner.getValue(), maxPos)));
-            
-            // Set exit gate position based on orientation
+            // Set exit gate position and direction based on orientation and selected radio buttons
             if (isPrimaryHorizontal) {
-                exitRow = exitPositionSpinner.getValue();
-                exitCol = boardWidth - 1;
-                exitDirection = "right";
+                if (rbRight.isSelected()) {
+                    exitDirection = "right";
+                    exitDirectionLabel.setText("Right side");
+                    exitCol = boardWidth - 1;
+                } else {
+                    exitDirection = "left";
+                    exitDirectionLabel.setText("Left side");
+                    exitCol = 0;
+                }
+                // Initialize exit row to middle of board for horizontal car
+                exitRow = boardHeight / 2;
             } else {
-                exitRow = boardHeight - 1;
-                exitCol = exitPositionSpinner.getValue();
-                exitDirection = "bottom";
+                if (rbBottom.isSelected()) {
+                    exitDirection = "bottom";
+                    exitDirectionLabel.setText("Bottom side");
+                    exitRow = boardHeight - 1;
+                } else {
+                    exitDirection = "top";
+                    exitDirectionLabel.setText("Top side");
+                    exitRow = 0;
+                }
+                // Initialize exit col to middle of board for vertical car
+                exitCol = boardWidth / 2;
             }
             
             // Rebuild color dropdown with available vehicles
             colorComboBox.getItems().clear();
             colorComboBox.getItems().add("Primary (Red)");
-            for (char c = 'A'; c < 'A' + numPieces && c <= 'Z'; c++) {
-                colorComboBox.getItems().add("Vehicle " + c);
-            }
             colorComboBox.getSelectionModel().selectFirst();
             currentColor = 'P'; // Reset to primary car
             
@@ -336,37 +470,51 @@ public class MainGUI extends Application {
         // Event listeners for orientation change
         rbHorizontal.setOnAction(e -> {
             isPrimaryHorizontal = true;
-            exitDirection = "right";
-            int maxPos = boardHeight - 1;
-            exitPositionSpinner.setValueFactory(
-                new SpinnerValueFactory.IntegerSpinnerValueFactory(0, maxPos, 
-                    Math.min(exitPositionSpinner.getValue(), maxPos)));
-            exitRow = exitPositionSpinner.getValue();
-            exitCol = boardWidth - 1;
+            
+            // Switch exit options to horizontal
+            exitSideConfig.getChildren().clear();
+            exitSideConfig.getChildren().addAll(lblExitSide, horizontalExitOptions);
+            
+            // Set default exit direction
+            if (rbRight.isSelected()) {
+                exitDirection = "right";
+                exitDirectionLabel.setText("Right side");
+                exitCol = boardWidth - 1;
+            } else {
+                exitDirection = "left";
+                exitDirectionLabel.setText("Left side");
+                exitCol = 0;
+            }
+            
+            // Default exit row to middle of board
+            exitRow = boardHeight / 2;
+            
+            initializeEmptyState();
             initializeBoard();
         });
         
         rbVertical.setOnAction(e -> {
             isPrimaryHorizontal = false;
-            exitDirection = "bottom";
-            int maxPos = boardWidth - 1;
-            exitPositionSpinner.setValueFactory(
-                new SpinnerValueFactory.IntegerSpinnerValueFactory(0, maxPos, 
-                    Math.min(exitPositionSpinner.getValue(), maxPos)));
-            exitRow = boardHeight - 1;
-            exitCol = exitPositionSpinner.getValue();
-            initializeBoard();
-        });
-        
-        // Exit position change listener
-        exitPositionSpinner.valueProperty().addListener((obs, oldVal, newVal) -> {
-            if (isPrimaryHorizontal) {
-                exitRow = newVal;
-                exitCol = boardWidth - 1;
-            } else {
+            
+            // Switch exit options to vertical
+            exitSideConfig.getChildren().clear();
+            exitSideConfig.getChildren().addAll(lblExitSide, verticalExitOptions);
+            
+            // Set default exit direction
+            if (rbBottom.isSelected()) {
+                exitDirection = "bottom";
+                exitDirectionLabel.setText("Bottom side");
                 exitRow = boardHeight - 1;
-                exitCol = newVal;
+            } else {
+                exitDirection = "top";
+                exitDirectionLabel.setText("Top side");
+                exitRow = 0;
             }
+            
+            // Default exit col to middle of board
+            exitCol = boardWidth / 2;
+            
+            initializeEmptyState();
             initializeBoard();
         });
 
@@ -380,9 +528,18 @@ public class MainGUI extends Application {
                     // Extract the character from "Vehicle X"
                     currentColor = selected.charAt(selected.length() - 1);
                 }
+                updateCarPlacementMode();
             }
         });
-
+        
+        // Add a "Finish Car" button
+        Button btnFinishCar = new Button("Finish Car Placement");
+        btnFinishCar.setMaxWidth(Double.MAX_VALUE);
+        btnFinishCar.setOnAction(e -> finishCarPlacement());
+        
+        // Add before the color legend in the right panel
+        rightPanel.getChildren().add(rightPanel.getChildren().indexOf(colorLegend), btnFinishCar);
+        
         // Solution navigation event handlers
         btnPrev.setOnAction(e -> {
             if (currentStepIndex > 0) {
@@ -453,21 +610,25 @@ public class MainGUI extends Application {
                     case "A*":
                         AStar astar = new AStar(boardWidth, boardHeight, exitRow, exitCol, exitDirection, selectedHeuristic);
                         solution = astar.find(currentState);
+                        visitedNodes = astar.getVisitedNodeCount();
                         break;
                         
                     case "Uniform Cost Search (UCS)":
                         UCS ucs = new UCS(boardWidth, boardHeight, exitRow, exitCol, exitDirection);
                         solution = ucs.find(currentState);
+                        visitedNodes = ucs.getVisitedNodeCount();
                         break;
                         
                     case "Greedy Best-First Search":
                         GreedyBFS greedy = new GreedyBFS(boardWidth, boardHeight, exitRow, exitCol, exitDirection, selectedHeuristic);
                         solution = greedy.find(currentState);
+                        visitedNodes = greedy.getVisitedNodeCount();
                         break;
                         
                     case "Iterative Deepening A*":
                         IDAStar ida = new IDAStar(boardWidth, boardHeight, exitRow, exitCol, exitDirection, selectedHeuristic);
                         solution = ida.find(currentState);
+                        visitedNodes = ida.getVisitedNodeCount();
                         break;
                         
                     default:
@@ -479,13 +640,13 @@ public class MainGUI extends Application {
                 
                 // Update metrics
                 lblExecutionTime.setText(String.format("Execution Time: %.3f seconds", executionTime));
+                lblVisitedNodes.setText("Nodes Visited: " + visitedNodes);
                 
                 if (solution != null) {
                     // Build solution states list by traversing the solution path
                     solutionStates = buildSolutionPath(solution);
                     
                     // Update UI
-                    lblVisitedNodes.setText("Nodes Visited: " + visitedNodes);
                     lblStep.setText(String.format("Step: 0/%d", solutionStates.size() - 1));
                     currentStepIndex = 0;
                     
@@ -555,18 +716,41 @@ public class MainGUI extends Application {
                     Car primaryCar = currentState.cars.get('P');
                     if (primaryCar != null) {
                         isPrimaryHorizontal = primaryCar.isHorizontal;
+                        
+                        // Update radio buttons for car orientation
                         if (isPrimaryHorizontal) {
                             rbHorizontal.setSelected(true);
+                            
+                            // Switch exit options to horizontal
+                            exitSideConfig.getChildren().clear();
+                            exitSideConfig.getChildren().addAll(lblExitSide, horizontalExitOptions);
+                            
+                            // Set correct exit direction radio button
+                            if ("right".equals(exitDirection)) {
+                                rbRight.setSelected(true);
+                                exitDirectionLabel.setText("Right side");
+                            } else {
+                                rbLeft.setSelected(true);
+                                exitDirectionLabel.setText("Left side");
+                            }
                         } else {
                             rbVertical.setSelected(true);
+                            
+
+                            // Switch exit options to vertical
+                            exitSideConfig.getChildren().clear();
+                            exitSideConfig.getChildren().addAll(lblExitSide, verticalExitOptions);
+                            
+                            // Set correct exit direction radio button
+                            if ("bottom".equals(exitDirection)) {
+                                rbBottom.setSelected(true);
+                                exitDirectionLabel.setText("Bottom side");
+                            } else {
+                                rbTop.setSelected(true);
+                                exitDirectionLabel.setText("Top side");
+                            }
                         }
                     }
-                    
-                    // Update exit position spinner
-                    int position = isPrimaryHorizontal ? exitRow : exitCol;
-                    int maxPos = isPrimaryHorizontal ? boardHeight - 1 : boardWidth - 1;
-                    exitPositionSpinner.setValueFactory(
-                        new SpinnerValueFactory.IntegerSpinnerValueFactory(0, maxPos, position));
                     
                     // Rebuild color dropdown with available vehicles
                     colorComboBox.getItems().clear();
@@ -637,6 +821,7 @@ public class MainGUI extends Application {
                     writer.write("Rush Hour Puzzle Solution\n");
                     writer.write("=========================\n\n");
                     writer.write(String.format("Board size: %d x %d\n", boardWidth, boardHeight));
+                    writer.write(String.format("Exit direction: %s\n", exitDirection.toUpperCase()));
                     writer.write(String.format("Algorithm used: %s\n", selectedAlgorithm));
                     if (!selectedAlgorithm.equals("Uniform Cost Search (UCS)")) {
                         writer.write(String.format("Heuristic used: %s\n", selectedHeuristic.getName()));
@@ -681,7 +866,6 @@ public class MainGUI extends Application {
     private void initializeColorMap() {
         // Setup fixed colors for pieces
         colorMap.put('P', Color.RED);
-        colorMap.put('K', Color.BLACK);
         
         // Regular pieces A-Z
         colorMap.put('A', Color.GREEN);
@@ -751,33 +935,15 @@ public class MainGUI extends Application {
                 button.setPrefSize(buttonSize, buttonSize);
                 button.setMaxSize(buttonSize, buttonSize);
                 
-                // Style for empty cell
+                // Style for empty cell (no green indicator)
                 button.setStyle("-fx-background-color: white; -fx-border-color: lightgray;");
-                
-                // Special style for exit position
-                if (row == exitRow && col == exitCol) {
-                    button.setStyle("-fx-background-color: black; -fx-text-fill: white;");
-                    button.setText("K");
-                }
                 
                 // Store row and column in the button properties
                 final int r = row;
                 final int c = col;
                 
-                // Add click handler to place/remove cars
-                button.setOnAction(event -> {
-                    if (currentColor == 'P') {
-                        // For primary car, we handle it specially
-                        placePrimaryCar(r, c);
-                    } else if (currentState.cars.containsKey(currentColor)) {
-                        // Remove existing car if clicked on it
-                        removeCar(currentColor);
-                        initializeBoard(); // Redraw the board
-                    } else {
-                        // Otherwise place a new car
-                        placeNewCar(currentColor, r, c);
-                    }
-                });
+                // Add click handler for car placement
+                button.setOnAction(event -> handleGridCellClick(r, c));
                 
                 boardButtons[row][col] = button;
                 boardPane.add(button, col, row);
@@ -795,12 +961,6 @@ public class MainGUI extends Application {
                 Button button = boardButtons[row][col];
                 button.setText("");
                 button.setStyle("-fx-background-color: white; -fx-border-color: lightgray;");
-                
-                // Mark exit position
-                if (row == exitRow && col == exitCol) {
-                    button.setStyle("-fx-background-color: black; -fx-text-fill: white;");
-                    button.setText("K");
-                }
             }
         }
         
@@ -827,107 +987,172 @@ public class MainGUI extends Application {
                 }
             }
         }
+        
+        // If in car placement mode, highlight current selected cells
+        if (isPlacingCar && !carPlacementPoints.isEmpty()) {
+            Color color = colorMap.getOrDefault(currentColor, Color.GRAY);
+            String colorHex = String.format("#%02X%02X%02X", 
+                (int)(color.getRed() * 255), 
+                (int)(color.getGreen() * 255), 
+                (int)(color.getBlue() * 255));
+            
+            for (Point p : carPlacementPoints) {
+                if (p.row >= 0 && p.row < boardHeight && p.col >= 0 && p.col < boardWidth) {
+                    Button button = boardButtons[p.row][p.col];
+                    button.setStyle("-fx-background-color: " + colorHex + "; -fx-border-color: red; -fx-border-width: 2px;");
+                    button.setText(String.valueOf(currentColor));
+                }
+            }
+        }
     }
     
-    private void placePrimaryCar(int row, int col) {
-        // Create a new primary car at the clicked position
-        int totalBits = boardWidth * boardHeight;
-        int chunkCount = (totalBits + 63) / 64;
-        long[] bitmask = new long[chunkCount];
-        
-        if (isPrimaryHorizontal) {
-            // Check if we have room for a 2-cell horizontal car
-            if (col >= boardWidth - 1) return;
-            
-            // Create horizontal car
-            bitmask[0] |= (1L << (row * boardWidth + col));
-            bitmask[0] |= (1L << (row * boardWidth + col + 1));
-            
-            // Remove any existing primary car
-            if (currentState.cars.containsKey('P')) {
-                removeCar('P');
+    // Handle grid cell clicks for car placement
+    private void handleGridCellClick(int row, int col) {
+        if (currentState.cars.containsKey(currentColor)) {
+            // If the car already exists, clicking on it should remove it
+            if (isCarAtPosition(currentColor, row, col)) {
+                removeCar(currentColor);
+                carPlacementPoints.clear();
+                isPlacingCar = false;
+                instructionLabel.setText("Click to place cars");
+                updateBoardFromState();
+                return;
             }
-            
-            // Add new primary car
-            Car primaryCar = new Car('P', true, 2, bitmask, -1, row);
-            Map<Character, Car> newCars = new HashMap<>(currentState.cars);
-            newCars.put('P', primaryCar);
-            currentState = new State(newCars, null, "", 0);
+        }
+        
+        // Start placing a new car
+        Point clickedPoint = new Point(row, col);
+        
+        if (!isPlacingCar) {
+            // First click - start car placement
+            isPlacingCar = true;
+            carPlacementPoints.clear();
+            carPlacementPoints.add(clickedPoint);
+            instructionLabel.setText("Continue clicking to extend car (press Enter when done)");
         } else {
-            // Check if we have room for a 2-cell vertical car
-            if (row >= boardHeight - 1) return;
-            
-            // Create vertical car
-            bitmask[0] |= (1L << (row * boardWidth + col));
-            bitmask[0] |= (1L << ((row + 1) * boardWidth + col));
-            
-            // Remove any existing primary car
-            if (currentState.cars.containsKey('P')) {
-                removeCar('P');
+            // Check if the new point is valid (straight line)
+            if (carPlacementPoints.contains(clickedPoint)) {
+                // Clicked on an already selected cell - ignore
+                return;
             }
             
-            // Add new primary car
-            Car primaryCar = new Car('P', false, 2, bitmask, col, -1);
-            Map<Character, Car> newCars = new HashMap<>(currentState.cars);
-            newCars.put('P', primaryCar);
-            currentState = new State(newCars, null, "", 0);
+            if (!isValidCarExtension(clickedPoint)) {
+                // Not a valid extension - show error
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Invalid Car Shape");
+                alert.setHeaderText("Cars must be straight lines");
+                alert.setContentText("Please place car cells in a straight horizontal or vertical line");
+                alert.showAndWait();
+                return;
+            }
+            
+            // Valid extension - add the point
+            carPlacementPoints.add(clickedPoint);
         }
         
-        // Update board
+        // Update the board to show the car being placed
         updateBoardFromState();
+        
+        // If this is the second point, check if we can determine orientation
+        if (carPlacementPoints.size() == 2) {
+            // Create a key event handler for Enter key to finish car placement
+            Scene scene = boardPane.getScene();
+            scene.setOnKeyPressed(e -> {
+                switch (e.getCode()) {
+                    case ENTER:
+                        finishCarPlacement();
+                        scene.setOnKeyPressed(null); // Remove the handler
+                        break;
+                    default:
+                        break;
+                }
+            });
+        }
     }
     
-    private void placeNewCar(char carId, int startRow, int startCol) {
-        // Get orientation from the user
-        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-        alert.setTitle("Car Orientation");
-        alert.setHeaderText("Choose car orientation");
-        alert.setContentText("Select the orientation for vehicle " + carId);
+    private boolean isCarAtPosition(char carId, int row, int col) {
+        Car car = currentState.cars.get(carId);
+        if (car == null) return false;
         
-        ButtonType horizontalButton = new ButtonType("Horizontal");
-        ButtonType verticalButton = new ButtonType("Vertical");
+        int idx = row * boardWidth + col;
+        int chunk = idx / 64;
+        int bit = idx % 64;
         
-        alert.getButtonTypes().setAll(horizontalButton, verticalButton);
+        return chunk < car.bitmask.length && (car.bitmask[chunk] & (1L << bit)) != 0;
+    }
+    
+    private boolean isValidCarExtension(Point newPoint) {
+        if (carPlacementPoints.isEmpty()) return true;
         
-        Optional<ButtonType> result = alert.showAndWait();
-        if (!result.isPresent()) return;
-        
-        boolean isHorizontal = result.get() == horizontalButton;
-        
-        // Get length from user
-        TextInputDialog lengthDialog = new TextInputDialog("2");
-        lengthDialog.setTitle("Car Length");
-        lengthDialog.setHeaderText("Enter car length");
-        lengthDialog.setContentText("Length (2-" + (isHorizontal ? boardWidth : boardHeight) + "):");
-        
-        Optional<String> lengthResult = lengthDialog.showAndWait();
-        if (!lengthResult.isPresent()) return;
-        
-        int length;
-        try {
-            length = Integer.parseInt(lengthResult.get());
-            if (length < 2) length = 2;
-            if (isHorizontal && length > boardWidth) length = boardWidth;
-            if (!isHorizontal && length > boardHeight) length = boardHeight;
-        } catch (NumberFormatException e) {
-            length = 2; // Default
+        // If this is the first extension, it's valid
+        if (carPlacementPoints.size() == 1) {
+            Point first = carPlacementPoints.get(0);
+            // Must be adjacent horizontally or vertically
+            return (first.row == newPoint.row && Math.abs(first.col - newPoint.col) == 1) ||
+                   (first.col == newPoint.col && Math.abs(first.row - newPoint.row) == 1);
         }
         
-        // Check bounds
-        if (isHorizontal && startCol + length > boardWidth) return;
-        if (!isHorizontal && startRow + length > boardHeight) return;
+        // We already have at least 2 points, so we know the orientation
+        Point first = carPlacementPoints.get(0);
+        Point second = carPlacementPoints.get(1);
         
-        // Create the car
+        boolean isHorizontal = first.row == second.row;
+        
+        if (isHorizontal) {
+            // Must be in the same row as existing points
+            if (newPoint.row != first.row) return false;
+            
+            // Find min/max column so far
+            int minCol = Integer.MAX_VALUE;
+            int maxCol = Integer.MIN_VALUE;
+            for (Point p : carPlacementPoints) {
+                minCol = Math.min(minCol, p.col);
+                maxCol = Math.max(maxCol, p.col);
+            }
+            
+            // New column must be adjacent to min or max
+            return newPoint.col == minCol - 1 || newPoint.col == maxCol + 1;
+        } else {
+            // Must be in the same column as existing points
+            if (newPoint.col != first.col) return false;
+            
+            // Find min/max row so far
+            int minRow = Integer.MAX_VALUE;
+            int maxRow = Integer.MIN_VALUE;
+            for (Point p : carPlacementPoints) {
+                minRow = Math.min(minRow, p.row);
+                maxRow = Math.max(maxRow, p.row);
+            }
+            
+            // New row must be adjacent to min or max
+            return newPoint.row == minRow - 1 || newPoint.row == maxRow + 1;
+        }
+    }
+    
+    private void finishCarPlacement() {
+        if (carPlacementPoints.size() < 2) {
+            // Need at least 2 cells to make a car
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Invalid Car Size");
+            alert.setHeaderText("Car is too small");
+            alert.setContentText("Cars must be at least 2 cells long");
+            alert.showAndWait();
+            return;
+        }
+        
+        // Determine orientation
+        Point first = carPlacementPoints.get(0);
+        Point second = carPlacementPoints.get(1);
+        boolean isHorizontal = first.row == second.row;
+        
+        // Create bitmask for the car
         int totalBits = boardWidth * boardHeight;
         int chunkCount = (totalBits + 63) / 64;
         long[] bitmask = new long[chunkCount];
         
-        for (int i = 0; i < length; i++) {
-            if (isHorizontal) {
-                bitmask[0] |= (1L << (startRow * boardWidth + (startCol + i)));
-            } else {
-                bitmask[0] |= (1L << ((startRow + i) * boardWidth + startCol));
-            }
+        for (Point p : carPlacementPoints) {
+            int idx = p.row * boardWidth + p.col;
+            bitmask[idx / 64] |= (1L << (idx % 64));
         }
         
         // Check for collisions with existing cars
@@ -935,32 +1160,41 @@ public class MainGUI extends Application {
         for (int i = 0; i < chunkCount; i++) {
             if ((bitmask[i] & occupied[i]) != 0) {
                 // Collision detected
-                Alert collisionAlert = new Alert(Alert.AlertType.ERROR);
-                collisionAlert.setTitle("Collision");
-                collisionAlert.setHeaderText("Cannot place car");
-                collisionAlert.setContentText("The car would overlap with an existing car.");
-                collisionAlert.showAndWait();
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Collision");
+                alert.setHeaderText("Cannot place car");
+                alert.setContentText("The car would overlap with an existing car.");
+                alert.showAndWait();
+                carPlacementPoints.clear();
+                isPlacingCar = false;
+                updateBoardFromState();
                 return;
             }
         }
         
-        // Add the car
-        Car newCar = new Car(carId, isHorizontal, length, bitmask, 
-                             isHorizontal ? -1 : startCol,
-                             isHorizontal ? startRow : -1);
+        // Create the car
+        int row = isHorizontal ? first.row : -1;
+        int col = isHorizontal ? -1 : first.col;
+        Car newCar = new Car(currentColor, isHorizontal, carPlacementPoints.size(), bitmask, col, row);
         
+        // Add to the state
         Map<Character, Car> newCars = new HashMap<>(currentState.cars);
-        newCars.put(carId, newCar);
+        newCars.put(currentColor, newCar);
         currentState = new State(newCars, null, "", 0);
+        
+        // Reset placement mode
+        carPlacementPoints.clear();
+        isPlacingCar = false;
+        instructionLabel.setText("Click to place cars");
         
         // Update board
         updateBoardFromState();
     }
     
-    private void removeCar(char carId) {
-        Map<Character, Car> newCars = new HashMap<>(currentState.cars);
-        newCars.remove(carId);
-        currentState = new State(newCars, null, "", 0);
+    // Replace the old placeNewCar method
+    private void placeNewCar(char carId, int startRow, int startCol) {
+        // Now handled by the interactive car placement system
+        handleGridCellClick(startRow, startCol);
     }
     
     // Calculate button size based on board dimensions
@@ -984,9 +1218,6 @@ public class MainGUI extends Application {
         
         // Add legend for primary car
         addLegendItem(legendPane, 'P', "Primary");
-        
-        // Add legend for exit
-        addLegendItem(legendPane, 'K', "Exit");
         
         // Add legend for other cars
         for (char c : currentState.cars.keySet()) {
@@ -1029,6 +1260,52 @@ public class MainGUI extends Application {
         
         currentState = solutionStates.get(stepIndex);
         updateBoardFromState();
+    }
+
+        /**
+     * Resets the car placement mode when selecting a different car
+     */
+    private void updateCarPlacementMode() {
+        // Reset placement state when changing selected car
+        carPlacementPoints.clear();
+        isPlacingCar = false;
+        
+        // Only update the instruction text if it's been initialized
+        if (instructionLabel != null) {
+            instructionLabel.setText("Click to place cars");
+        }
+        
+        updateBoardFromState();
+    }
+    
+    /**
+     * Removes a car with the specified ID from the current state
+     * 
+     * @param carId The ID of the car to remove
+     */
+    private void removeCar(char carId) {
+        Map<Character, Car> newCars = new HashMap<>(currentState.cars);
+        newCars.remove(carId);
+        currentState = new State(newCars, null, "", 0);
+        
+        // Update board display
+        updateBoardFromState();
+    }
+    
+    /**
+     * Finds the next available letter ID (A-Z) for a new car
+     * 
+     * @return Next available car ID, or character beyond 'Z' if all are taken
+     */
+    private char findNextAvailableCarId() {
+        // Start from 'A' and find the first letter not already used
+        for (char c = 'A'; c <= 'Z'; c++) {
+            if (!currentState.cars.containsKey(c)) {
+                return c;
+            }
+        }
+        // If we get here, all letters A-Z are taken
+        return '[';  // Return a character beyond 'Z' to indicate no more IDs available
     }
     
     public static void main(String[] args) {
