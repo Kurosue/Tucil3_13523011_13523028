@@ -19,9 +19,7 @@
 
  <p align="center">
     <br />
-    <a href="https://github.com/Kurosue/Tucil3_13523011_13523028/releases/">Releases</a>
-    ·
-    <a href="https://github.com/Kurosue/Tucil3_13523011_13523028/doc/Tubes2_Nuggets.pdf">Project Report (Bahasa Indonesia)</a>
+    <a href="https://github.com/Kurosue/Tucil3_13523011_13523028/doc/Tugas Kecil 3 IF2211 Strategi Algoritma.pdf">Project Report (Bahasa Indonesia)</a>
 </p>
 
  <div align="justify">  </div>
