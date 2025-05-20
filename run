@@ -1,0 +1,15 @@
+#!/bin/bash
+./gradlew shadowJar
+
+mkdir -p bin
+
+if [ -f "build/libs/RushHourSolver.jar" ] && [ ! -f "bin/RushHourSolver.jar" ]; then
+    cp build/libs/RushHourSolver.jar bin/
+fi
+
+if [ -f "bin/RushHourSolver.jar" ]; then
+    java -jar bin/RushHourSolver.jar "$@"
+else
+    echo "Error: JAR file not created. Check the build logs."
+    exit 1
+fi
