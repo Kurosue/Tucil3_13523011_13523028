@@ -81,7 +81,7 @@ This Rush Hour Solver is a program for finding routes (pathfinding) in the _Rush
       java --version
       ```
 ### Installing Gradle and JavaFX
-> [!INFO]
+> [!Note]
 > Gradle and JavaFX automatically installed when you run the program for the first time.
 
  ---
@@ -98,7 +98,7 @@ This Rush Hour Solver is a program for finding routes (pathfinding) in the _Rush
     ```bash
     ./run      # Linux/macOS
     run,bat    # Windows
-  ```
+    ```
 > [!Note]
 > Make sure that all of the dependencies are already installed
  ---
