@@ -865,8 +865,8 @@ public class MainGUI extends Application {
     
     private void initializeColorMap() {
         // Setup fixed colors for pieces
-        colorMap.put('P', Color.RED);
-        
+        colorMap.put('P', Color.rgb(220, 20, 60)); // This line sets the primary car color to red
+    
         // Regular pieces A-Z
         colorMap.put('A', Color.GREEN);
         colorMap.put('B', Color.BLUE);

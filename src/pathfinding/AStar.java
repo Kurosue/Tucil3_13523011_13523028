@@ -1,6 +1,8 @@
 package pathfinding;
 
 import java.util.*;
+
+import util.BoardPrinter;
 import util.State;
 import heuristic.Heuristic;
 import heuristic.Distance;
