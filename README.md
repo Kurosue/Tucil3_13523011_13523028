@@ -97,10 +97,8 @@ This Rush Hour Solver is a program for finding routes (pathfinding) in the _Rush
  3. Run the program using Gradle:
     ```bash
     ./run      # Linux/macOS
-    run,bat    # Windows
+    run.bat    # Windows
     ```
-> [!Note]
-> Make sure that all of the dependencies are already installed
  ---
  <!-- CONTRIBUTOR -->
  <div align="center" id="contributor">
