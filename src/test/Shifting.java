@@ -3,7 +3,15 @@ package test;
 import util.Car;
 import util.Car.Direction;
 
+/**
+ * Test class for car movement functionality.
+ */
 public class Shifting {
+    /**
+     * Main method that runs various tests on car shifting operations.
+     * 
+     * @param args Command line arguments (not used)
+     */
     public static void main(String[] args) {
         // Test parameters
         int width = 6;
@@ -62,6 +70,13 @@ public class Shifting {
         printCarPosition(rightIllegal, width, height);
     }
     
+    /**
+     * Helper method to print a visual representation of a car's position on the board.
+     * 
+     * @param car The car to display
+     * @param width Width of the board to display
+     * @param height Height of the board to display
+     */
     private static void printCarPosition(Car car, int width, int height) {
         if (car == null) {
             System.out.println("Car is null");

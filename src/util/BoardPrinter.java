@@ -2,8 +2,18 @@ package util;
 
 import java.util.Map;
 
+/**
+ * Utility class for printing puzzle board states.
+ */
 public class BoardPrinter {
 
+    /**
+     * Prints a textual representation of the board state to standard output.
+     * 
+     * @param state Current state of the puzzle
+     * @param width Width of the puzzle grid
+     * @param height Height of the puzzle grid
+     */
     public static void printBoard(State state, int width, int height) {
         char[][] board = new char[height][width];
 
@@ -43,6 +53,15 @@ public class BoardPrinter {
         System.out.println("+" + "-".repeat(width) + "+");
     }
     
+    /**
+     * Prints a textual representation of the board state with an exit marker.
+     * 
+     * @param state Current state of the puzzle
+     * @param width Width of the puzzle grid
+     * @param height Height of the puzzle grid
+     * @param exitRow Row position of the exit
+     * @param exitCol Column position of the exit
+     */
     public static void printBoard(State state, int width, int height, int exitRow, int exitCol) {
         char[][] board = new char[height][width];
 

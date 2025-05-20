@@ -4,13 +4,31 @@ import java.util.*;
 import util.Car;
 import util.State;
 
+/**
+ * Heuristic that considers distance to exit plus the minimum moves needed to clear blocking cars.
+ */
 public class BlockingCarDistance implements Heuristic {
     
+    /**
+     * Returns the name of this heuristic function.
+     * 
+     * @return String name of the heuristic
+     */
     @Override
     public String getName() {
         return "Blocking Car Distance";
     }
     
+    /**
+     * Calculates the heuristic value by combining distance to exit and the minimum moves
+     * needed for blocking cars to clear the path.
+     * 
+     * @param state The current puzzle state
+     * @param width Width of the puzzle grid
+     * @param height Height of the puzzle grid
+     * @param exitDirection Direction of the exit ("left", "right", "top", "bottom")
+     * @return Combined heuristic value or MAX_VALUE if car orientation is incompatible with exit
+     */
     @Override
     public int calculate(State state, int width, int height, String exitDirection) {
         Car primaryCar = state.cars.get('P');
@@ -146,6 +164,18 @@ public class BlockingCarDistance implements Heuristic {
         return distanceToExit + totalBlockingMoves;
     }
     
+    /**
+     * Calculates the minimum number of moves required for a blocking car to clear a path.
+     * Checks if the car can move left/right or up/down to clear the blocking point.
+     * 
+     * @param car The blocking car
+     * @param blockingRow Row where car is blocking
+     * @param blockingCol Column where car is blocking
+     * @param state Current puzzle state
+     * @param width Width of the puzzle grid
+     * @param height Height of the puzzle grid
+     * @return Minimum moves needed to clear the path or a penalty value if not possible
+     */
     private int calculateMinimumMoves(Car car, int blockingRow, int blockingCol, State state, int width, int height) {
         // For a blocking car, find the minimum moves needed to clear the pathway
         

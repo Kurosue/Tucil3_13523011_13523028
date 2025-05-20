@@ -4,6 +4,9 @@ import java.util.*;
 import util.State;
 import heuristic.Heuristic;
 
+/**
+ * Implementation of Iterative Deepening A* search algorithm.
+ */
 public class IDAStar {
     private int width, height;
     private int kRow, kCol;
@@ -11,6 +14,16 @@ public class IDAStar {
     private Heuristic heuristic;
     private int visitedNode;
     
+    /**
+     * Constructs an IDA* search solver with specified parameters.
+     * 
+     * @param width Width of the puzzle grid
+     * @param height Height of the puzzle grid
+     * @param kRow Row position of the exit
+     * @param kCol Column position of the exit
+     * @param exitDirection Direction of the exit path
+     * @param heuristic Heuristic function to use for evaluation
+     */
     public IDAStar(int width, int height, int kRow, int kCol, String exitDirection, Heuristic heuristic) {
         this.width = width;
         this.height = height;
@@ -20,6 +33,12 @@ public class IDAStar {
         this.heuristic = heuristic;
     }
     
+    /**
+     * Finds a path from the initial state to the goal state using IDA* search.
+     * 
+     * @param initialState The starting state of the puzzle
+     * @return The goal state containing the solution path, or null if no solution exists
+     */
     public State find(State initialState) {
         visitedNode = 0;
         int threshold = calculateHeuristic(initialState);
@@ -49,6 +68,16 @@ public class IDAStar {
         return null;
     }
     
+    /**
+     * Recursive depth-first search with iterative deepening based on f-value threshold.
+     * 
+     * @param state Current state being explored
+     * @param g Current path cost
+     * @param threshold Current f-value threshold
+     * @param visitedStates Set of visited states in current path
+     * @param nextThreshold Minimum f-value exceeding current threshold
+     * @return Search result containing found state or next threshold value
+     */
     private SearchResult search(State state, int g, int threshold, Set<String> visitedStates, int nextThreshold) {
         visitedNode++;
         
@@ -81,13 +110,21 @@ public class IDAStar {
         return new SearchResult(null, min);
     }
     
+    /**
+     * Calculates the heuristic value for the given state.
+     * 
+     * @param state The state to evaluate
+     * @return The heuristic value representing estimated cost to goal
+     */
     private int calculateHeuristic(State state) {
         return heuristic.calculate(state, width, height, exitDirection);
     }
     
     /**
-     * Generate a hash string for a state based on car positions
-     * This is used as a key for tracking visited states
+     * Creates a unique string representation of a state for tracking visited states.
+     * 
+     * @param state The state to convert to a hash string
+     * @return A string uniquely identifying the state configuration
      */
     private String getStateHash(State state) {
         // A more efficient and reliable way of hashing the state 
@@ -111,10 +148,28 @@ public class IDAStar {
         return sb.toString();
     }
     
+    /**
+     * Returns the count of nodes visited during the search.
+     * 
+     * @return The number of visited nodes
+     */
+    public int getVisitedNodeCount() {
+        return visitedNode;
+    }
+    
+    /**
+     * Container class for search results in IDA*.
+     */
     private class SearchResult {
         State state;
         int nextThreshold;
         
+        /**
+         * Creates a search result with found state or next threshold.
+         * 
+         * @param state Found goal state or null if not found
+         * @param nextThreshold Next f-value threshold to try
+         */
         SearchResult(State state, int nextThreshold) {
             this.state = state;
             this.nextThreshold = nextThreshold;

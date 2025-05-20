@@ -7,8 +7,8 @@ public class Main {
             System.out.println("Rush Hour Puzzle Solver");
             System.out.println("Usage: java -jar RushHourSolver.jar [mode]");
             System.out.println("Available modes:");
-            System.out.println("  cli   - Run in command line interface mode");
-            System.out.println("  gui   - Run in graphical user interface mode (default)");
+            System.out.println("  cli   - Run in command line interface mode (recommended)");
+            System.out.println("  gui   - Run in graphical user interface mode");
             
             // Default to GUI mode if no arguments
             System.out.println("GUI or CLI mode?");
