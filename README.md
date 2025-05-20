@@ -80,37 +80,9 @@ This Rush Hour Solver is a program for finding routes (pathfinding) in the _Rush
       ```bash
       java --version
       ```
-
-#### Installing Gradle
-1. **Windows**
-    - Download the latest Gradle from [Gradle Releases](https://gradle.org/releases/)
-    - Extract the downloaded file to a location on your computer
-    - Add the `bin` directory of the extracted folder to your system's PATH environment variable
-    - Verify installation by opening Command Prompt and typing:
-      ```bash
-      gradle --version
-      ```
-2. **macOS**
-    - Using Homebrew:
-      ```bash
-      brew install gradle
-      ```
-    - Verify installation:
-      ```bash
-      gradle --version
-      ```
-3. **Linux**
-    - Using SDKMAN:
-      ```bash
-      curl -s "https://get.sdkman.io" | bash
-      source "$HOME/.sdkman/bin/sdkman-init.sh"
-      sdk install gradle
-      sdk default gradle
-      ```
-    - Verify installation:
-      ```bash
-      gradle --version
-      ```
+### Installing Gradle and JavaFX
+> [!INFO]
+> Gradle and JavaFX automatically installed when you run the program for the first time.
 
  ---
  ## How to Run
@@ -124,8 +96,8 @@ This Rush Hour Solver is a program for finding routes (pathfinding) in the _Rush
     ```
  3. Run the program using Gradle:
     ```bash
-    ./gradlew run      # Linux/macOS
-    gradlew.bat run    # Windows
+    ./run      # Linux/macOS
+    run,bat    # Windows
   ```
 > [!Note]
 > Make sure that all of the dependencies are already installed
