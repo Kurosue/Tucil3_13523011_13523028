@@ -12,6 +12,7 @@
  
 [![Java](https://img.shields.io/badge/Java-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)](https://www.java.com/)
 [![JavaFX](https://img.shields.io/badge/JavaFX-007396?style=for-the-badge&logo=java&logoColor=white)](https://openjfx.io/)
+[![Gradle](https://img.shields.io/badge/Gradle-02303A?style=for-the-badge&logo=gradle&logoColor=white)](https://gradle.org/)
 
    </p>
  </div>
@@ -80,18 +81,35 @@ This Rush Hour Solver is a program for finding routes (pathfinding) in the _Rush
       java --version
       ```
 
-#### Installing JavaFX
-1. **Option 1: Using with an IDE (Recommended)**
-    - Most IDEs like IntelliJ IDEA or Eclipse have built-in support for JavaFX
-    - In IntelliJ, create a new JavaFX project or add JavaFX library to your existing project
-    
-2. **Option 2: Manual Installation**
-    - Download JavaFX SDK from [OpenJFX](https://openjfx.io/)
+#### Installing Gradle
+1. **Windows**
+    - Download the latest Gradle from [Gradle Releases](https://gradle.org/releases/)
     - Extract the downloaded file to a location on your computer
-    - Add JavaFX library to your project's build path
-    - Set VM options to include JavaFX modules:
+    - Add the `bin` directory of the extracted folder to your system's PATH environment variable
+    - Verify installation by opening Command Prompt and typing:
+      ```bash
+      gradle --version
       ```
-      --module-path /path/to/javafx-sdk/lib --add-modules javafx.controls,javafx.fxml
+2. **macOS**
+    - Using Homebrew:
+      ```bash
+      brew install gradle
+      ```
+    - Verify installation:
+      ```bash
+      gradle --version
+      ```
+3. **Linux**
+    - Using SDKMAN:
+      ```bash
+      curl -s "https://get.sdkman.io" | bash
+      source "$HOME/.sdkman/bin/sdkman-init.sh"
+      sdk install gradle
+      sdk default gradle
+      ```
+    - Verify installation:
+      ```bash
+      gradle --version
       ```
 
  ---
@@ -104,7 +122,11 @@ This Rush Hour Solver is a program for finding routes (pathfinding) in the _Rush
     ```bash
     cd Tucil3_13523011_13523028
     ```
- 3. You could use the .sh( Linux) and .bat( Windows) for easier 
+ 3. Run the program using Gradle:
+    ```bash
+    ./gradlew run      # Linux/macOS
+    gradlew.bat run    # Windows
+  ```
 > [!Note]
 > Make sure that all of the dependencies are already installed
  ---

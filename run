@@ -1,9 +1,0 @@
-javac -d bin -sourcepath src src/MainCLI.java src/**/*.java
-
-if [ $# -eq 0 ]; then
-    java -cp bin MainCLI
-elif [ "$1" = "TEST" ] && [ $# -ge 2 ]; then
-    java -cp bin test/$2
-else
-    echo "Usage: ./run [TEST testfile]"
-fi
